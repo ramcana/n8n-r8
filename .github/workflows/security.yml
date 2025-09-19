@@ -39,6 +39,10 @@ jobs:
   docker-security-scan:
     name: Docker Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
     strategy:
       matrix:
         image:

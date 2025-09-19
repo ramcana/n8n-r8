@@ -1,0 +1,84 @@
+{
+  "name": "Webhook to Email Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contact-form",
+        "responseMode": "onReceived",
+        "responseData": "Thank you for your message!"
+      },
+      "id": "webhook-trigger",
+      "name": "Contact Form Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "contact-form"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "resource": "item",
+        "additionalFields": {
+          "name": "={{ $json.name }}",
+          "email": "={{ $json.email }}",
+          "message": "={{ $json.message }}",
+          "timestamp": "={{ new Date().toISOString() }}"
+        }
+      },
+      "id": "format-data",
+      "name": "Format Contact Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "nodeCredentialType": "httpBasicAuth",
+        "requestMethod": "POST",
+        "url": "https://api.emailservice.com/send",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"to\": \"admin@example.com\",\n  \"subject\": \"New Contact Form Submission\",\n  \"html\": \"<h2>New Contact Form Submission</h2><p><strong>Name:</strong> {{ $json.name }}</p><p><strong>Email:</strong> {{ $json.email }}</p><p><strong>Message:</strong> {{ $json.message }}</p><p><strong>Received:</strong> {{ $json.timestamp }}</p>\"\n}"
+      },
+      "id": "send-email",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Contact Form Webhook": {
+      "main": [
+        [
+          {
+            "node": "Format Contact Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Contact Data": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1",
+  "id": "webhook-email-workflow",
+  "meta": {
+    "instanceId": "n8n-r8-example"
+  },
+  "tags": ["webhook", "email", "contact-form", "basic"]
+}

@@ -28,6 +28,16 @@ cp templates/ExampleApi.credentials.ts src/credentials/MyCustomApi.credentials.t
 nano src/nodes/MyCustomNode.node.ts
 ```
 
+### 2.1. Available Sample Nodes
+
+The project includes several sample nodes to get you started:
+
+- **SimpleExample Node**: Basic transformation node with message and timestamp functionality
+- **HTTP Trigger Node**: Webhook trigger node for receiving HTTP requests
+  - Supports GET, POST, PUT, DELETE, PATCH methods
+  - Configurable response modes and status codes
+  - Built-in request parsing and response handling
+
 ### 3. Build and Test
 
 ```bash

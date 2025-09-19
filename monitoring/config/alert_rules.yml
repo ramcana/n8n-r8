@@ -22,6 +22,15 @@ groups:
           summary: "N8N service is down"
           description: "N8N service has been down for more than 30 seconds."
 
+      - alert: N8NExtendedDowntime
+        expr: up{job="n8n"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "N8N extended downtime detected"
+          description: "N8N service has been down for more than 5 minutes. Immediate investigation required."
+
       # System resource alerts
       - alert: HighCPUUsage
         expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80

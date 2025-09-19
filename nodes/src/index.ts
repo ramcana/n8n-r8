@@ -3,12 +3,14 @@
 
 // Export all nodes
 export * from './nodes/SimpleExample.node';
+export * from './nodes/HttpTrigger.node';
 
 // Export all credentials
 export * from './credentials/SimpleApi.credentials';
 
 // You can also export them individually for better tree-shaking
 // export { SimpleExample } from './nodes/SimpleExample.node';
+// export { HttpTrigger } from './nodes/HttpTrigger.node';
 // export { SimpleApi } from './credentials/SimpleApi.credentials';
 
 // Version information
@@ -18,6 +20,7 @@ export const description = 'N8N-R8 Custom Nodes Package';
 // Node metadata for N8N discovery
 export const nodes = [
 	'./nodes/SimpleExample.node',
+	'./nodes/HttpTrigger.node',
 ];
 
 export const credentials = [

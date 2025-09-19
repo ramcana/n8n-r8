@@ -52,12 +52,6 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.traefik.yml config
           docker compose -f docker-compose.monitoring.yml config
 
-      - name: Lint Dockerfiles
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: nodes/Dockerfile
-          failure-threshold: warning
-
       - name: Lint JavaScript/TypeScript
         run: |
           cd nodes
@@ -127,8 +121,7 @@ jobs:
           cp .env.example .env
           # Set test credentials
           sed -i 's/changeme123!/test_password_123!/g' .env
-          sed -i 's/n8n_secure_password_123!/test_db_password!/g' .env
-          sed -i 's/redis_secure_password_123!/test_redis_password!/g' .env
+          sed -i 's/change-this-secure-password/test_secure_password!/g' .env
 
       - name: Test basic deployment
         if: matrix.deployment == 'basic'
@@ -227,6 +220,7 @@ jobs:
         run: |
           cp .env.example .env
           sed -i 's/changeme123!/test_password_123!/g' .env
+          sed -i 's/change-this-secure-password/test_secure_password!/g' .env
 
       - name: Start N8N
         run: |

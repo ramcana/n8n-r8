@@ -1,0 +1,532 @@
+# N8N-R8 Business Metrics Configuration
+# Custom business metrics for comprehensive monitoring
+
+# Workflow Performance Metrics
+workflow_metrics:
+  # Workflow execution success rate
+  - name: n8n_workflow_success_rate
+    description: "Percentage of successful workflow executions"
+    type: gauge
+    labels:
+      - workflow_id
+      - workflow_name
+      - environment
+    query: |
+      (
+        sum(rate(n8n_workflow_executions_total{status="success"}[5m])) by (workflow_id, workflow_name, environment) /
+        sum(rate(n8n_workflow_executions_total[5m])) by (workflow_id, workflow_name, environment)
+      ) * 100
+    thresholds:
+      critical: 85
+      warning: 95
+      target: 99
+
+  # Workflow execution duration
+  - name: n8n_workflow_duration_percentiles
+    description: "Workflow execution duration percentiles"
+    type: histogram
+    labels:
+      - workflow_id
+      - workflow_name
+      - percentile
+    queries:
+      p50: histogram_quantile(0.50, rate(n8n_workflow_duration_seconds_bucket[5m]))
+      p90: histogram_quantile(0.90, rate(n8n_workflow_duration_seconds_bucket[5m]))
+      p95: histogram_quantile(0.95, rate(n8n_workflow_duration_seconds_bucket[5m]))
+      p99: histogram_quantile(0.99, rate(n8n_workflow_duration_seconds_bucket[5m]))
+    thresholds:
+      p50_warning: 30
+      p50_critical: 60
+      p95_warning: 120
+      p95_critical: 300
+
+  # Workflow error rate
+  - name: n8n_workflow_error_rate
+    description: "Rate of workflow execution errors"
+    type: gauge
+    labels:
+      - workflow_id
+      - workflow_name
+      - error_type
+    query: |
+      sum(rate(n8n_workflow_executions_total{status="error"}[5m])) by (workflow_id, workflow_name, error_type)
+    thresholds:
+      warning: 0.01  # 1% error rate
+      critical: 0.05 # 5% error rate
+
+# Node Performance Metrics
+node_metrics:
+  # Node execution success rate
+  - name: n8n_node_success_rate
+    description: "Success rate of individual node executions"
+    type: gauge
+    labels:
+      - node_type
+      - node_name
+      - workflow_id
+    query: |
+      (
+        sum(rate(n8n_node_executions_total{status="success"}[5m])) by (node_type, node_name, workflow_id) /
+        sum(rate(n8n_node_executions_total[5m])) by (node_type, node_name, workflow_id)
+      ) * 100
+    thresholds:
+      critical: 90
+      warning: 98
+      target: 99.5
+
+  # Node execution duration
+  - name: n8n_node_duration_avg
+    description: "Average node execution duration"
+    type: gauge
+    labels:
+      - node_type
+      - node_name
+    query: |
+      avg(rate(n8n_node_duration_seconds_sum[5m])) by (node_type, node_name) /
+      avg(rate(n8n_node_duration_seconds_count[5m])) by (node_type, node_name)
+    thresholds:
+      warning: 10
+      critical: 30
+
+  # Most used nodes
+  - name: n8n_node_usage_ranking
+    description: "Ranking of most frequently used nodes"
+    type: counter
+    labels:
+      - node_type
+      - rank
+    query: |
+      topk(10, sum(rate(n8n_node_executions_total[1h])) by (node_type))
+
+# System Resource Metrics
+resource_metrics:
+  # Database connection utilization
+  - name: n8n_db_connection_utilization
+    description: "Database connection pool utilization"
+    type: gauge
+    labels:
+      - database
+      - pool_name
+    query: |
+      (
+        pg_stat_activity_count{datname="n8n"} /
+        pg_settings_max_connections
+      ) * 100
+    thresholds:
+      warning: 70
+      critical: 85
+
+  # Redis memory utilization
+  - name: n8n_redis_memory_utilization
+    description: "Redis memory utilization percentage"
+    type: gauge
+    query: |
+      (
+        redis_memory_used_bytes /
+        redis_config_maxmemory
+      ) * 100
+    thresholds:
+      warning: 80
+      critical: 90
+
+  # Queue depth metrics
+  - name: n8n_queue_depth
+    description: "Depth of execution queues"
+    type: gauge
+    labels:
+      - queue_name
+      - priority
+    query: |
+      redis_list_length{key=~"bull:.*"}
+    thresholds:
+      warning: 100
+      critical: 500
+
+# Business Logic Metrics
+business_metrics:
+  # API integration success rates
+  - name: n8n_api_integration_success_rate
+    description: "Success rate of external API integrations"
+    type: gauge
+    labels:
+      - api_provider
+      - endpoint
+      - method
+    query: |
+      (
+        sum(rate(n8n_http_requests_total{status_code=~"2.."}[5m])) by (api_provider, endpoint, method) /
+        sum(rate(n8n_http_requests_total[5m])) by (api_provider, endpoint, method)
+      ) * 100
+    thresholds:
+      critical: 95
+      warning: 98
+      target: 99.5
+
+  # Data processing throughput
+  - name: n8n_data_throughput
+    description: "Data processing throughput (records per second)"
+    type: gauge
+    labels:
+      - workflow_type
+      - data_source
+    query: |
+      sum(rate(n8n_records_processed_total[5m])) by (workflow_type, data_source)
+    thresholds:
+      min_expected: 10
+      target: 100
+
+  # Webhook response times
+  - name: n8n_webhook_response_time
+    description: "Webhook response time percentiles"
+    type: histogram
+    labels:
+      - webhook_id
+      - source_ip
+    queries:
+      p50: histogram_quantile(0.50, rate(n8n_webhook_duration_seconds_bucket[5m]))
+      p95: histogram_quantile(0.95, rate(n8n_webhook_duration_seconds_bucket[5m]))
+    thresholds:
+      p50_warning: 1
+      p50_critical: 3
+      p95_warning: 5
+      p95_critical: 10
+
+# User Experience Metrics
+user_metrics:
+  # Active users
+  - name: n8n_active_users
+    description: "Number of active users in different time windows"
+    type: gauge
+    labels:
+      - time_window
+    queries:
+      last_5min: count(count by (user_id) (n8n_user_activity{timestamp > (time() - 300)}))
+      last_1hour: count(count by (user_id) (n8n_user_activity{timestamp > (time() - 3600)}))
+      last_24hours: count(count by (user_id) (n8n_user_activity{timestamp > (time() - 86400)}))
+
+  # Workflow creation rate
+  - name: n8n_workflow_creation_rate
+    description: "Rate of new workflow creation"
+    type: gauge
+    query: |
+      sum(rate(n8n_workflows_created_total[1h]))
+    thresholds:
+      min_expected: 0.1  # At least 1 workflow per 10 hours
+
+  # User session duration
+  - name: n8n_user_session_duration
+    description: "Average user session duration"
+    type: gauge
+    query: |
+      avg(n8n_user_session_duration_seconds)
+    thresholds:
+      min_expected: 300  # 5 minutes
+      target: 1800       # 30 minutes
+
+# Security Metrics
+security_metrics:
+  # Failed authentication attempts
+  - name: n8n_auth_failures
+    description: "Rate of failed authentication attempts"
+    type: gauge
+    labels:
+      - source_ip
+      - user_agent
+    query: |
+      sum(rate(n8n_auth_attempts_total{status="failed"}[5m])) by (source_ip, user_agent)
+    thresholds:
+      warning: 5   # 5 failures per 5 minutes
+      critical: 20 # 20 failures per 5 minutes
+
+  # Suspicious activity detection
+  - name: n8n_suspicious_activity
+    description: "Detection of suspicious user activity"
+    type: gauge
+    labels:
+      - activity_type
+      - user_id
+      - severity
+    query: |
+      sum(rate(n8n_security_events_total{severity=~"medium|high|critical"}[5m])) by (activity_type, user_id, severity)
+    thresholds:
+      any_activity: 0  # Any suspicious activity should alert
+
+  # Rate limiting triggers
+  - name: n8n_rate_limit_triggers
+    description: "Rate limiting activation events"
+    type: gauge
+    labels:
+      - endpoint
+      - source_ip
+    query: |
+      sum(rate(n8n_rate_limit_exceeded_total[5m])) by (endpoint, source_ip)
+    thresholds:
+      warning: 1
+      critical: 10
+
+# Infrastructure Health Metrics
+infrastructure_metrics:
+  # Service availability
+  - name: n8n_service_availability
+    description: "Service availability percentage"
+    type: gauge
+    labels:
+      - service_name
+      - instance
+    query: |
+      avg_over_time(up{job=~"n8n|postgres|redis|nginx|traefik"}[5m]) * 100
+    thresholds:
+      critical: 99.0
+      warning: 99.9
+      target: 99.99
+
+  # Response time SLA compliance
+  - name: n8n_response_time_sla
+    description: "Percentage of requests meeting SLA response time"
+    type: gauge
+    labels:
+      - service
+      - sla_threshold
+    query: |
+      (
+        sum(rate(http_request_duration_seconds_bucket{le="2.0"}[5m])) /
+        sum(rate(http_request_duration_seconds_count[5m]))
+      ) * 100
+    thresholds:
+      critical: 95
+      warning: 98
+      target: 99
+
+  # Error budget consumption
+  - name: n8n_error_budget_consumption
+    description: "Error budget consumption rate"
+    type: gauge
+    labels:
+      - service
+      - slo_type
+    query: |
+      (
+        sum(rate(http_requests_total{status_code!~"2.."}[30d])) /
+        sum(rate(http_requests_total[30d]))
+      ) * 100
+    thresholds:
+      warning: 0.5   # 50% of error budget consumed
+      critical: 0.8  # 80% of error budget consumed
+
+# Custom Application Metrics
+application_metrics:
+  # Workflow complexity score
+  - name: n8n_workflow_complexity
+    description: "Workflow complexity based on node count and connections"
+    type: gauge
+    labels:
+      - workflow_id
+      - complexity_level
+    query: |
+      n8n_workflow_node_count * n8n_workflow_connection_count
+    thresholds:
+      high_complexity: 100
+      very_high_complexity: 500
+
+  # Integration health score
+  - name: n8n_integration_health_score
+    description: "Health score for external integrations"
+    type: gauge
+    labels:
+      - integration_name
+      - provider
+    query: |
+      (
+        (n8n_integration_success_rate * 0.4) +
+        (n8n_integration_response_time_score * 0.3) +
+        (n8n_integration_availability * 0.3)
+      )
+    thresholds:
+      critical: 70
+      warning: 85
+      target: 95
+
+  # Data quality metrics
+  - name: n8n_data_quality_score
+    description: "Data quality score based on validation rules"
+    type: gauge
+    labels:
+      - data_source
+      - validation_rule
+    query: |
+      (
+        sum(n8n_data_validation_passed) /
+        sum(n8n_data_validation_total)
+      ) * 100
+    thresholds:
+      critical: 90
+      warning: 95
+      target: 99
+
+# Alerting Rules Configuration
+alerting_rules:
+  # Critical business metrics alerts
+  critical_alerts:
+    - alert: WorkflowSuccessRateCritical
+      expr: n8n_workflow_success_rate < 85
+      for: 2m
+      labels:
+        severity: critical
+        team: platform
+      annotations:
+        summary: "Workflow success rate critically low"
+        description: "Workflow {{ $labels.workflow_name }} has success rate of {{ $value }}%"
+
+    - alert: HighErrorRate
+      expr: n8n_workflow_error_rate > 0.05
+      for: 1m
+      labels:
+        severity: critical
+        team: platform
+      annotations:
+        summary: "High workflow error rate detected"
+        description: "Error rate is {{ $value }} for workflow {{ $labels.workflow_name }}"
+
+    - alert: ServiceDown
+      expr: n8n_service_availability < 99.0
+      for: 30s
+      labels:
+        severity: critical
+        team: infrastructure
+      annotations:
+        summary: "Service availability below SLA"
+        description: "Service {{ $labels.service_name }} availability is {{ $value }}%"
+
+  # Warning level alerts
+  warning_alerts:
+    - alert: WorkflowPerformanceDegraded
+      expr: n8n_workflow_duration_percentiles{percentile="p95"} > 120
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+      annotations:
+        summary: "Workflow performance degraded"
+        description: "95th percentile duration is {{ $value }}s for {{ $labels.workflow_name }}"
+
+    - alert: HighResourceUtilization
+      expr: n8n_db_connection_utilization > 70 or n8n_redis_memory_utilization > 80
+      for: 5m
+      labels:
+        severity: warning
+        team: infrastructure
+      annotations:
+        summary: "High resource utilization"
+        description: "Resource utilization is high: {{ $value }}%"
+
+    - alert: SecurityThreatDetected
+      expr: n8n_auth_failures > 5 or n8n_suspicious_activity > 0
+      for: 1m
+      labels:
+        severity: warning
+        team: security
+      annotations:
+        summary: "Security threat detected"
+        description: "Suspicious activity detected from {{ $labels.source_ip }}"
+
+# Dashboard Configuration
+dashboard_config:
+  business_overview:
+    title: "N8N Business Metrics Overview"
+    panels:
+      - title: "Workflow Success Rate"
+        type: stat
+        targets:
+          - expr: avg(n8n_workflow_success_rate)
+        thresholds:
+          - color: red
+            value: 85
+          - color: yellow
+            value: 95
+          - color: green
+            value: 99
+
+      - title: "Active Workflows"
+        type: stat
+        targets:
+          - expr: count(n8n_workflow_executions_total)
+
+      - title: "Error Rate Trend"
+        type: graph
+        targets:
+          - expr: sum(rate(n8n_workflow_executions_total{status="error"}[5m]))
+            legend: "Error Rate"
+
+      - title: "Top Performing Workflows"
+        type: table
+        targets:
+          - expr: topk(10, avg(n8n_workflow_success_rate) by (workflow_name))
+
+  performance_dashboard:
+    title: "N8N Performance Metrics"
+    panels:
+      - title: "Response Time Percentiles"
+        type: graph
+        targets:
+          - expr: n8n_workflow_duration_percentiles{percentile="p50"}
+            legend: "50th percentile"
+          - expr: n8n_workflow_duration_percentiles{percentile="p95"}
+            legend: "95th percentile"
+          - expr: n8n_workflow_duration_percentiles{percentile="p99"}
+            legend: "99th percentile"
+
+      - title: "Throughput"
+        type: graph
+        targets:
+          - expr: sum(rate(n8n_workflow_executions_total[5m]))
+            legend: "Executions per second"
+
+      - title: "Resource Utilization"
+        type: graph
+        targets:
+          - expr: n8n_db_connection_utilization
+            legend: "Database Connections"
+          - expr: n8n_redis_memory_utilization
+            legend: "Redis Memory"
+
+# Metric Collection Configuration
+collection_config:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  
+  # Custom metric endpoints
+  custom_endpoints:
+    - job_name: 'n8n-business-metrics'
+      static_configs:
+        - targets: ['n8n:5678']
+      metrics_path: '/metrics/business'
+      scrape_interval: 30s
+
+    - job_name: 'n8n-security-metrics'
+      static_configs:
+        - targets: ['n8n:5678']
+      metrics_path: '/metrics/security'
+      scrape_interval: 10s
+
+  # Recording rules for complex calculations
+  recording_rules:
+    - record: n8n:workflow_success_rate_5m
+      expr: |
+        (
+          sum(rate(n8n_workflow_executions_total{status="success"}[5m])) by (workflow_id) /
+          sum(rate(n8n_workflow_executions_total[5m])) by (workflow_id)
+        ) * 100
+
+    - record: n8n:error_budget_remaining
+      expr: |
+        1 - (
+          sum(rate(n8n_workflow_executions_total{status="error"}[30d])) /
+          sum(rate(n8n_workflow_executions_total[30d]))
+        )
+
+    - record: n8n:sla_compliance_score
+      expr: |
+        (
+          (n8n:workflow_success_rate_5m * 0.6) +
+          (n8n_service_availability * 0.4)
+        )

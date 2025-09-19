@@ -2,10 +2,14 @@
 # Convenient commands for managing the N8N development environment
 
 .PHONY: help start stop restart logs status clean backup restore reset
-.PHONY: start-nginx start-traefik start-dev start-with-nodes stop-nginx stop-traefik
+.PHONY: start-nginx start-traefik start-dev start-with-nodes stop-nginx stop-traefik start-secure
 .PHONY: build pull update health check-env setup ssl-renew
 .PHONY: build-nodes watch-nodes test-nodes
-.PHONY: dev prod staging test
+.PHONY: dev prod staging test test-unit test-integration test-validation test-coverage test-parallel test-basic
+.PHONY: security-init security-scan security-report security-encrypt security-rotate security-status
+.PHONY: docs-serve docs-build docs-validate
+.PHONY: performance-test performance-baseline performance-monitor
+.PHONY: quick-start quick-nginx quick-traefik quick-monitor quick-secure quick-test quick-full
 
 # Default target
 .DEFAULT_GOAL := help
@@ -594,7 +598,61 @@ systemd-status: ## Show systemd service status (use SERVICE=name)
 
 ##@ Testing
 
-test: ## Run basic functionality tests
+test: ## Run all tests (comprehensive test suite)
+	@echo "$(GREEN)Running comprehensive test suite...$(NC)"
+	@if [ -x "./tests/run_tests.sh" ]; then \
+		./tests/run_tests.sh; \
+	else \
+		echo "$(RED)Test runner not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+test-unit: ## Run unit tests only
+	@echo "$(BLUE)Running unit tests...$(NC)"
+	@if [ -x "./tests/run_tests.sh" ]; then \
+		./tests/run_tests.sh --unit; \
+	else \
+		echo "$(RED)Test runner not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+test-integration: ## Run integration tests only
+	@echo "$(BLUE)Running integration tests...$(NC)"
+	@if [ -x "./tests/run_tests.sh" ]; then \
+		./tests/run_tests.sh --integration; \
+	else \
+		echo "$(RED)Test runner not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+test-validation: ## Run environment validation tests
+	@echo "$(BLUE)Running validation tests...$(NC)"
+	@if [ -x "./tests/run_tests.sh" ]; then \
+		./tests/run_tests.sh --validation; \
+	else \
+		echo "$(RED)Test runner not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+test-coverage: ## Run tests with coverage reporting
+	@echo "$(BLUE)Running tests with coverage...$(NC)"
+	@if [ -x "./tests/run_tests.sh" ]; then \
+		./tests/run_tests.sh --coverage --report html; \
+	else \
+		echo "$(RED)Test runner not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+test-parallel: ## Run tests in parallel
+	@echo "$(BLUE)Running tests in parallel...$(NC)"
+	@if [ -x "./tests/run_tests.sh" ]; then \
+		./tests/run_tests.sh --parallel; \
+	else \
+		echo "$(RED)Test runner not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+test-basic: ## Run basic functionality tests (legacy)
 	@echo "$(BLUE)Running basic functionality tests...$(NC)"
 	@$(MAKE) --no-print-directory check-env
 	@echo "$(GREEN)✅ Environment check passed$(NC)"
@@ -606,6 +664,134 @@ test: ## Run basic functionality tests
 	fi
 	@echo "$(GREEN)All tests passed!$(NC)"
 
+##@ Security
+
+security-init: ## Initialize security framework
+	@echo "$(GREEN)Initializing security framework...$(NC)"
+	@if [ -x "./security/secrets/secrets-manager.sh" ]; then \
+		./security/secrets/secrets-manager.sh init; \
+	else \
+		echo "$(RED)Security manager not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+security-scan: ## Run comprehensive security scans
+	@echo "$(BLUE)Running security scans...$(NC)"
+	@if [ -x "./security/scanning/scan-containers.sh" ]; then \
+		./security/scanning/scan-containers.sh; \
+	else \
+		echo "$(RED)Container scanner not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+	@if [ -x "./security/scanning/scan-dependencies.sh" ]; then \
+		./security/scanning/scan-dependencies.sh; \
+	else \
+		echo "$(YELLOW)Dependency scanner not found$(NC)"; \
+	fi
+
+security-report: ## Generate security report
+	@echo "$(BLUE)Generating security report...$(NC)"
+	@if [ -x "./security/scanning/security-report.sh" ]; then \
+		./security/scanning/security-report.sh; \
+	else \
+		echo "$(RED)Security report generator not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+security-encrypt: ## Encrypt environment file
+	@echo "$(GREEN)Encrypting environment file...$(NC)"
+	@if [ -x "./security/secrets/secrets-manager.sh" ]; then \
+		./security/secrets/secrets-manager.sh encrypt --env-file .env; \
+	else \
+		echo "$(RED)Security manager not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+security-rotate: ## Rotate all secrets
+	@echo "$(GREEN)Rotating secrets...$(NC)"
+	@if [ -x "./security/secrets/secrets-manager.sh" ]; then \
+		./security/secrets/secrets-manager.sh rotate; \
+	else \
+		echo "$(RED)Security manager not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+security-status: ## Show security status
+	@echo "$(BLUE)Security status:$(NC)"
+	@if [ -x "./security/secrets/secrets-manager.sh" ]; then \
+		./security/secrets/secrets-manager.sh status; \
+	else \
+		echo "$(RED)Security manager not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+start-secure: ## Start with enhanced security
+	@echo "$(GREEN)Starting with enhanced security...$(NC)"
+	docker compose -f $(COMPOSE_FILE) -f security/docker-compose.security.yml up -d
+	@$(MAKE) --no-print-directory _wait-for-services
+	@$(MAKE) --no-print-directory _show-access-info
+
+##@ Documentation
+
+docs-serve: ## Serve documentation locally
+	@echo "$(GREEN)Starting documentation server...$(NC)"
+	@if command -v python3 >/dev/null 2>&1; then \
+		echo "$(BLUE)Documentation available at: http://localhost:8000$(NC)"; \
+		cd docs && python3 -m http.server 8000; \
+	elif command -v python >/dev/null 2>&1; then \
+		echo "$(BLUE)Documentation available at: http://localhost:8000$(NC)"; \
+		cd docs && python -m SimpleHTTPServer 8000; \
+	else \
+		echo "$(RED)Python not found. Please install Python to serve documentation.$(NC)"; \
+		exit 1; \
+	fi
+
+docs-build: ## Build documentation (if using static site generator)
+	@echo "$(BLUE)Building documentation...$(NC)"
+	@if [ -f "docs/package.json" ]; then \
+		cd docs && npm install && npm run build; \
+	else \
+		echo "$(YELLOW)No documentation build system found. Using static files.$(NC)"; \
+	fi
+
+docs-validate: ## Validate documentation links and structure
+	@echo "$(BLUE)Validating documentation...$(NC)"
+	@find docs -name "*.md" -type f | while read file; do \
+		echo "Checking: $$file"; \
+		if ! grep -q "^# " "$$file"; then \
+			echo "$(YELLOW)Warning: $$file may be missing a main heading$(NC)"; \
+		fi; \
+	done
+	@echo "$(GREEN)Documentation validation completed$(NC)"
+
+##@ Performance
+
+performance-test: ## Run performance tests
+	@echo "$(BLUE)Running performance tests...$(NC)"
+	@if [ -x "./tests/run_tests.sh" ]; then \
+		./tests/run_tests.sh --performance; \
+	else \
+		echo "$(RED)Performance tests not available$(NC)"; \
+		exit 1; \
+	fi
+
+performance-baseline: ## Check performance against baselines
+	@echo "$(BLUE)Checking performance baselines...$(NC)"
+	@if [ -f "./docs/performance/baseline-recommendations.md" ]; then \
+		echo "$(GREEN)Performance baselines documented in docs/performance/$(NC)"; \
+		echo "$(BLUE)Current system resources:$(NC)"; \
+		echo "  CPU cores: $$(nproc)"; \
+		echo "  Memory: $$(free -h | grep '^Mem:' | awk '{print $$2}')"; \
+		echo "  Disk space: $$(df -h . | tail -1 | awk '{print $$4}') available"; \
+	else \
+		echo "$(RED)Performance baseline documentation not found$(NC)"; \
+		exit 1; \
+	fi
+
+performance-monitor: ## Start performance monitoring
+	@echo "$(GREEN)Starting performance monitoring...$(NC)"
+	@$(MAKE) --no-print-directory monitor-full
+
 ##@ Quick Actions
 
 quick-start: setup start ## Quick start (setup + start)
@@ -615,3 +801,9 @@ quick-nginx: setup start-nginx ## Quick start with Nginx
 quick-traefik: setup start-traefik ## Quick start with Traefik
 
 quick-monitor: setup start monitor-basic ## Quick start with basic monitoring
+
+quick-secure: setup security-init start-secure ## Quick start with security
+
+quick-test: setup test-validation test-unit ## Quick test (validation + unit tests)
+
+quick-full: setup security-init start-secure monitor-full ## Full setup with security and monitoring

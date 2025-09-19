@@ -1,6 +1,15 @@
 # N8N-R8: Production-Ready N8N Deployment
 
-A comprehensive, production-ready N8N deployment solution with Docker Compose, featuring multiple proxy options, monitoring, security, custom nodes, and automation capabilities.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI/CD Pipeline](https://github.com/your-username/n8n-r8/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/your-username/n8n-r8/actions)
+[![Security Scan](https://github.com/your-username/n8n-r8/workflows/Security%20Scan/badge.svg)](https://github.com/your-username/n8n-r8/actions)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+[![N8N Compatible](https://img.shields.io/badge/n8n-v1.63.4-orange.svg)](https://n8n.io/)
+[![SemVer](https://img.shields.io/badge/semver-2.0.0-blue)](https://semver.org/)
+
+**🚀 Production-ready N8N deployment with Docker Compose, monitoring, security, and automation - Get your workflow automation platform running in minutes!**
+
+A comprehensive, battle-tested N8N deployment solution featuring multiple proxy options, comprehensive monitoring, security hardening, custom nodes development, and automated updates. Perfect for teams wanting enterprise-grade N8N deployments without the complexity.
 
 ## 🚀 Quick Start
 
@@ -32,19 +41,43 @@ make quick-full
 - [📄 License](#-license)
 - [🆘 Support](#-support)
 
-## 🚀 Features
+## ✨ Key Features
 
-- **Production-ready N8N setup** with PostgreSQL and Redis
-- **Multiple proxy options**: Nginx or Traefik reverse proxy
-- **SSL/TLS support** with automatic certificate management
-- **Health checks** for all services
-- **Comprehensive monitoring** with Prometheus, Grafana, and alerting
-- **Backup and restore** functionality
-- **Reset and cleanup** scripts
-- **Proper security** configurations
-- **Log management** with rotation and retention
-- **Comprehensive autoupdate system** with Watchtower and scheduled updates
-- **Easy deployment** with one-command startup
+### 🏗️ **Production-Ready Infrastructure**
+- **PostgreSQL & Redis** - Robust database and caching layer
+- **Docker Compose** - Container orchestration with health checks
+- **Resource limits** - Prevent resource exhaustion attacks
+- **Security hardening** - Following Docker and N8N best practices
+
+### 🌐 **Multiple Deployment Options**
+- **Nginx Proxy** - High-performance reverse proxy with SSL
+- **Traefik Proxy** - Modern reverse proxy with automatic SSL
+- **Direct Access** - Simple development setup
+- **Monitoring Stack** - Full observability with Prometheus & Grafana
+
+### 🔒 **Enterprise Security**
+- **SSL/TLS encryption** with Let's Encrypt automation
+- **Security headers** - HSTS, CSP, X-Frame-Options, and more
+- **Network isolation** - Docker networks for service separation
+- **Credential management** - Environment-based configuration
+
+### 📊 **Comprehensive Monitoring**
+- **Prometheus** - Metrics collection and alerting
+- **Grafana** - Beautiful dashboards and visualization
+- **Uptime Kuma** - Service availability monitoring
+- **Log aggregation** - Centralized logging with Loki
+
+### 🔄 **Automation & Updates**
+- **Watchtower integration** - Automatic container updates
+- **Backup & restore** - Automated data protection
+- **Health monitoring** - Proactive issue detection
+- **CI/CD ready** - GitHub Actions workflows included
+
+### 🛠️ **Developer Experience**
+- **Custom nodes development** - Full development environment
+- **Hot-reload support** - Rapid development workflow
+- **One-command deployment** - Get started in minutes
+- **Extensive documentation** - Comprehensive guides and examples
 
 ## ⚡ Quick Start
 
@@ -61,6 +94,8 @@ make start-nginx    # Start with Nginx proxy (recommended)
 **Access N8N:**
 - Open http://localhost in your browser
 - Login with your credentials (default: admin/changeme123!)
+
+> ⚠️ **SECURITY WARNING**: The default credentials `admin/changeme123!` are for development only. **NEVER use these in production!** Change them immediately in your `.env` file before deploying to production environments.
 
 <!-- Screenshot placeholder: Add screenshot of n8n UI post-startup -->
 ![N8N Dashboard](docs/images/n8n-dashboard-screenshot.png)
@@ -233,19 +268,25 @@ cd nodes && ./scripts/build.sh build
 
 ### Environment Variables
 
-> ⚠️ **Production Security Warning**: Never commit `.env` files to git! Always use secure, unique passwords and keys in production.
+> ⚠️ **CRITICAL SECURITY WARNING**: 
+> - **NEVER commit `.env` files to git!**
+> - **ALWAYS change default passwords before production deployment!**
+> - **Use secure, unique passwords and keys in production!**
+> - **Store sensitive data in secure secret management systems!**
+> 
+> The default credentials (`admin/changeme123!`) are **ONLY for development**. Using them in production is a **serious security risk**.
 
 Key environment variables in `.env`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `N8N_BASIC_AUTH_USER` | admin | N8N admin username |
-| `N8N_BASIC_AUTH_PASSWORD` | changeme123! | N8N admin password |
+| `N8N_BASIC_AUTH_USER` | admin | N8N admin username ⚠️ **CHANGE IN PRODUCTION** |
+| `N8N_BASIC_AUTH_PASSWORD` | changeme123! | N8N admin password ⚠️ **CHANGE IN PRODUCTION** |
 | `N8N_HOST` | localhost | Domain name for N8N |
-| `POSTGRES_PASSWORD` | n8n_secure_password_123! | PostgreSQL password |
-| `REDIS_PASSWORD` | redis_secure_password_123! | Redis password |
-| `N8N_ENCRYPTION_KEY` | Required | N8N encryption key (32 chars) |
-| `N8N_JWT_SECRET` | Required | JWT secret key |
+| `POSTGRES_PASSWORD` | n8n_secure_password_123! | PostgreSQL password ⚠️ **CHANGE IN PRODUCTION** |
+| `REDIS_PASSWORD` | redis_secure_password_123! | Redis password ⚠️ **CHANGE IN PRODUCTION** |
+| `N8N_ENCRYPTION_KEY` | Required | N8N encryption key (32 chars) ⚠️ **REQUIRED** |
+| `N8N_JWT_SECRET` | Required | JWT secret key ⚠️ **REQUIRED** |
 
 ### SSL/HTTPS Setup
 

@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   n8n:
-    image: n8nio/n8n:latest
+    image: n8nio/n8n:1.63.4
     container_name: n8n
     restart: unless-stopped
     # Conditional port exposure - only expose when not using reverse proxy
@@ -59,6 +59,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     # Traefik labels (uncomment when using Traefik)
     # labels:
     #   - "traefik.enable=true"
@@ -69,7 +77,7 @@ services:
     #   - "traefik.docker.network=n8n-network"
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15.8-alpine3.20
     container_name: n8n-postgres
     restart: unless-stopped
     labels:
@@ -90,6 +98,14 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
     command: >
       postgres
       -c max_connections=200
@@ -110,7 +126,7 @@ services:
       -c max_parallel_maintenance_workers=4
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.1-alpine3.20
     container_name: n8n-redis
     restart: unless-stopped
     labels:
@@ -137,6 +153,14 @@ services:
       timeout: 3s
       retries: 5
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
 
 networks:
   n8n-network:

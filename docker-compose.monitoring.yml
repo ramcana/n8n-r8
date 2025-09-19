@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Prometheus for metrics collection
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.54.1
     container_name: n8n-prometheus
     restart: unless-stopped
     ports:
@@ -31,7 +31,7 @@ services:
 
   # Grafana for visualization
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.2.2
     container_name: n8n-grafana
     restart: unless-stopped
     ports:
@@ -61,7 +61,7 @@ services:
 
   # Node Exporter for system metrics
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.8.2
     container_name: n8n-node-exporter
     restart: unless-stopped
     ports:
@@ -87,7 +87,7 @@ services:
 
   # cAdvisor for container metrics
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.50.0
     container_name: n8n-cadvisor
     restart: unless-stopped
     ports:
@@ -113,7 +113,7 @@ services:
 
   # Alertmanager for handling alerts
   alertmanager:
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:v0.27.0
     container_name: n8n-alertmanager
     restart: unless-stopped
     ports:
@@ -137,7 +137,7 @@ services:
 
   # Loki for log aggregation
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.2.0
     container_name: n8n-loki
     restart: unless-stopped
     ports:
@@ -158,7 +158,7 @@ services:
 
   # Promtail for log shipping
   promtail:
-    image: grafana/promtail:latest
+    image: grafana/promtail:3.2.0
     container_name: n8n-promtail
     restart: unless-stopped
     volumes:
@@ -178,7 +178,7 @@ services:
 
   # Uptime monitoring service
   uptime-kuma:
-    image: louislam/uptime-kuma:latest
+    image: louislam/uptime-kuma:1.23.15
     container_name: n8n-uptime-kuma
     restart: unless-stopped
     ports:

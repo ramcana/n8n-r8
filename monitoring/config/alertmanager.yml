@@ -1,0 +1,193 @@
+# Alertmanager Configuration for N8N-R8
+
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'n8n-alerts@localhost'
+  smtp_auth_username: ''
+  smtp_auth_password: ''
+  smtp_require_tls: false
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree for alerts
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    # Critical alerts go to multiple channels
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 30m
+    
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 2h
+    
+    # Maintenance alerts (less urgent)
+    - match_re:
+        alertname: '.*Maintenance.*|.*Backup.*'
+      receiver: 'maintenance-alerts'
+      group_wait: 5m
+      repeat_interval: 12h
+
+# Inhibition rules to suppress redundant alerts
+inhibit_rules:
+  # Suppress warning alerts when critical alerts are firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # Suppress individual service alerts when the whole instance is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: '.*Down'
+    equal: ['instance']
+
+# Notification receivers
+receivers:
+  # Default webhook receiver
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook'
+        send_resolved: true
+
+  # Critical alerts - multiple channels
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'admin@localhost'
+        subject: '[CRITICAL] N8N-R8 Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+        headers:
+          Priority: 'high'
+    
+    # Slack notifications (configure webhook URL)
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts'
+        title: 'N8N-R8 Critical Alert'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          *Severity:* {{ .Labels.severity }}
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+    
+    # Discord notifications (configure webhook URL)
+    discord_configs:
+      - webhook_url: 'YOUR_DISCORD_WEBHOOK_URL'
+        title: 'N8N-R8 Critical Alert'
+        message: |
+          {{ range .Alerts }}
+          **Alert:** {{ .Annotations.summary }}
+          **Description:** {{ .Annotations.description }}
+          **Instance:** {{ .Labels.instance }}
+          **Severity:** {{ .Labels.severity }}
+          {{ end }}
+
+  # Warning alerts
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'admin@localhost'
+        subject: '[WARNING] N8N-R8 Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+    
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#monitoring'
+        title: 'N8N-R8 Warning'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Instance:* {{ .Labels.instance }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+
+  # Maintenance alerts
+  - name: 'maintenance-alerts'
+    email_configs:
+      - to: 'admin@localhost'
+        subject: '[MAINTENANCE] N8N-R8: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+
+  # PagerDuty integration (configure integration key)
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - routing_key: 'YOUR_PAGERDUTY_INTEGRATION_KEY'
+        description: 'N8N-R8 Critical Alert: {{ .GroupLabels.alertname }}'
+        details:
+          summary: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+          source: 'N8N-R8 Monitoring'
+          severity: '{{ .GroupLabels.severity }}'
+          component: '{{ .GroupLabels.job }}'
+          group: '{{ .GroupLabels.alertname }}'
+
+  # Microsoft Teams (configure webhook URL)
+  - name: 'teams-alerts'
+    webhook_configs:
+      - url: 'YOUR_TEAMS_WEBHOOK_URL'
+        send_resolved: true
+        http_config:
+          basic_auth:
+            username: ''
+            password: ''
+        title: 'N8N-R8 Alert'
+        text: |
+          {{ range .Alerts }}
+          **Alert:** {{ .Annotations.summary }}
+          **Description:** {{ .Annotations.description }}
+          **Instance:** {{ .Labels.instance }}
+          **Severity:** {{ .Labels.severity }}
+          **Time:** {{ .StartsAt }}
+          {{ end }}
+
+# Time intervals for muting alerts
+time_intervals:
+  - name: 'maintenance-window'
+    time_intervals:
+      - times:
+          - start_time: '02:00'
+            end_time: '04:00'
+        weekdays: ['sunday']
+        months: ['1:12']
+
+# Mute rules
+mute_time_intervals:
+  - name: 'maintenance-mute'
+    time_intervals: ['maintenance-window']

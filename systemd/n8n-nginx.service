@@ -1,0 +1,60 @@
+# N8N-R8 with Nginx Proxy Systemd Service File
+# This service file starts N8N-R8 with Nginx reverse proxy
+#
+# INSTALLATION INSTRUCTIONS:
+# ==========================
+# 1. sudo cp /home/ram/projects/n8n-r8/systemd/n8n-nginx.service /etc/systemd/system/
+# 2. Edit paths and user in the service file
+# 3. sudo systemctl daemon-reload
+# 4. sudo systemctl enable n8n-nginx.service
+# 5. sudo systemctl start n8n-nginx.service
+
+[Unit]
+Description=N8N-R8 with Nginx Proxy
+Documentation=https://github.com/your-repo/n8n-r8
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=forking
+User=ram
+Group=ram
+WorkingDirectory=/home/ram/projects/n8n-r8
+
+# Environment configuration
+EnvironmentFile=/home/ram/projects/n8n-r8/.env
+EnvironmentFile=-/home/ram/projects/n8n-r8/.env.local
+Environment=COMPOSE_PROJECT_NAME=n8n-r8
+
+# Service commands
+ExecStartPre=-/usr/bin/docker compose -f docker-compose.yml -f docker-compose.nginx.yml pull --quiet
+ExecStartPre=-/usr/bin/docker compose -f docker-compose.yml -f docker-compose.nginx.yml down --remove-orphans
+ExecStartPre=/bin/bash -c 'mkdir -p data/{n8n,postgres,redis} nginx/{ssl,html} logs'
+ExecStartPre=/bin/bash -c 'chmod -R 755 data/ && chmod 700 nginx/ssl/'
+
+ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.nginx.yml up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.nginx.yml down
+ExecReload=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.nginx.yml restart
+
+# Health check
+ExecStartPost=/bin/sleep 30
+ExecStartPost=/bin/bash -c 'curl -f http://localhost/health || curl -f http://localhost:5678/healthz || exit 1'
+
+# Restart policy
+Restart=always
+RestartSec=15
+TimeoutStartSec=300
+TimeoutStopSec=60
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=n8n-r8-nginx
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

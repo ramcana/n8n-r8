@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: n8n-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/logs:/var/log/traefik
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/traefik/acme:/acme
+    networks:
+      - n8n-network
+    environment:
+      - TRAEFIK_API_DASHBOARD=${TRAEFIK_API_DASHBOARD:-true}
+      - TRAEFIK_API_INSECURE=${TRAEFIK_API_INSECURE:-true}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DASHBOARD_HOST}`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$K8QJZz.ZJZ5Z5Z5Z5Z5Z5O"  # admin:admin (change this!)
+
+  # Override n8n service to enable Traefik labels and remove port exposure
+  n8n:
+    ports: []  # Remove port exposure, Traefik will handle routing
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`${N8N_HOST}`)"
+      - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+      - "traefik.docker.network=n8n-network"
+      - "traefik.http.routers.n8n.middlewares=secure-headers"
+      - "traefik.http.middlewares.secure-headers.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH"
+      - "traefik.http.middlewares.secure-headers.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.secure-headers.headers.accesscontrolmaxage=100"
+      - "traefik.http.middlewares.secure-headers.headers.addvaryheader=true"
+      - "traefik.http.middlewares.secure-headers.headers.referrer-policy=same-origin"
+      - "traefik.http.middlewares.secure-headers.headers.x-frame-options=DENY"
+      - "traefik.http.middlewares.secure-headers.headers.x-content-type-options=nosniff"

@@ -1,0 +1,69 @@
+# Traefik Configuration
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# API and Dashboard
+api:
+  dashboard: true
+  insecure: true  # Set to false in production
+
+# Entry Points
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+
+# Providers
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: n8n-network
+    watch: true
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# Certificate Resolvers
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: admin@localhost  # Change this to your email
+      storage: /acme/acme.json
+      httpChallenge:
+        entryPoint: web
+      # Use staging server for testing (comment out for production)
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+
+# Logging
+log:
+  level: INFO
+  filePath: /var/log/traefik/traefik.log
+
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+
+# Metrics
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+
+# Ping endpoint for health checks
+ping:
+  entryPoint: web
+
+# Tracing (optional)
+# tracing:
+#   jaeger:
+#     samplingServerURL: http://jaeger:14268/api/sampling
+#     localAgentHostPort: jaeger:6831

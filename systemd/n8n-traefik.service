@@ -1,0 +1,61 @@
+# N8N-R8 with Traefik Proxy Systemd Service File
+# This service file starts N8N-R8 with Traefik reverse proxy and SSL
+#
+# INSTALLATION INSTRUCTIONS:
+# ==========================
+# 1. sudo cp /home/ram/projects/n8n-r8/systemd/n8n-traefik.service /etc/systemd/system/
+# 2. Edit paths and user in the service file
+# 3. sudo systemctl daemon-reload
+# 4. sudo systemctl enable n8n-traefik.service
+# 5. sudo systemctl start n8n-traefik.service
+
+[Unit]
+Description=N8N-R8 with Traefik Proxy
+Documentation=https://github.com/your-repo/n8n-r8
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=forking
+User=ram
+Group=ram
+WorkingDirectory=/home/ram/projects/n8n-r8
+
+# Environment configuration
+EnvironmentFile=/home/ram/projects/n8n-r8/.env
+EnvironmentFile=-/home/ram/projects/n8n-r8/.env.local
+Environment=COMPOSE_PROJECT_NAME=n8n-r8
+
+# Service commands
+ExecStartPre=-/usr/bin/docker compose -f docker-compose.yml -f docker-compose.traefik.yml pull --quiet
+ExecStartPre=-/usr/bin/docker compose -f docker-compose.yml -f docker-compose.traefik.yml down --remove-orphans
+ExecStartPre=/bin/bash -c 'mkdir -p data/{n8n,postgres,redis,traefik/acme} traefik/{dynamic,logs}'
+ExecStartPre=/bin/bash -c 'chmod -R 755 data/ traefik/'
+ExecStartPre=/bin/bash -c 'touch data/traefik/acme/acme.json && chmod 600 data/traefik/acme/acme.json'
+
+ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.traefik.yml down
+ExecReload=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.traefik.yml restart
+
+# Health check
+ExecStartPost=/bin/sleep 30
+ExecStartPost=/bin/bash -c 'curl -f http://localhost:8080/ping && curl -f http://localhost/healthz || exit 1'
+
+# Restart policy
+Restart=always
+RestartSec=15
+TimeoutStartSec=300
+TimeoutStopSec=60
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=n8n-r8-traefik
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

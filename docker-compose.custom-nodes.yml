@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Override N8N service to mount custom nodes
+  n8n:
+    volumes:
+      # Mount custom nodes (built)
+      - ./nodes/dist:/home/node/.n8n/custom:ro
+      # Mount node icons and assets
+      - ./nodes/assets:/home/node/.n8n/custom/assets:ro
+    environment:
+      # Enable custom nodes
+      - N8N_CUSTOM_EXTENSIONS=/home/node/.n8n/custom
+      # Development mode for better error messages
+      - NODE_ENV=${NODE_ENV:-development}
+      # Enable detailed logging for custom nodes
+      - N8N_LOG_LEVEL=${N8N_LOG_LEVEL:-debug}
+    labels:
+      - "com.docker.compose.service=n8n-custom-nodes"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
+
+  # Optional: Development container for building nodes
+  n8n-node-dev:
+    image: node:18-alpine
+    container_name: n8n-node-dev
+    working_dir: /workspace
+    volumes:
+      - ./nodes:/workspace
+      - node_modules_cache:/workspace/node_modules
+    command: sh -c "npm install && npm run build:watch"
+    profiles:
+      - dev
+    environment:
+      - NODE_ENV=development
+    networks:
+      - n8n-network
+    labels:
+      - "com.docker.compose.service=n8n-node-dev"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME}"
+
+volumes:
+  node_modules_cache:
+    driver: local
+
+networks:
+  n8n-network:
+    external: true

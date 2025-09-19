@@ -1,0 +1,145 @@
+# N8N-R8 Systemd Service File
+# This service file enables automatic startup of N8N-R8 on system boot
+#
+# INSTALLATION INSTRUCTIONS:
+# ==========================
+#
+# 1. Copy this file to the systemd directory:
+#    sudo cp /home/ram/projects/n8n-r8/systemd/n8n-local.service /etc/systemd/system/
+#
+# 2. Edit the service file to match your setup:
+#    sudo nano /etc/systemd/system/n8n-local.service
+#    - Update User= to your username
+#    - Update WorkingDirectory= to your project path
+#    - Update Environment= paths if needed
+#
+# 3. Reload systemd daemon:
+#    sudo systemctl daemon-reload
+#
+# 4. Enable the service to start on boot:
+#    sudo systemctl enable n8n-local.service
+#
+# 5. Start the service immediately:
+#    sudo systemctl start n8n-local.service
+#
+# 6. Check service status:
+#    sudo systemctl status n8n-local.service
+#
+# 7. View logs:
+#    sudo journalctl -u n8n-local.service -f
+#
+# MANAGEMENT COMMANDS:
+# ===================
+# Start:    sudo systemctl start n8n-local.service
+# Stop:     sudo systemctl stop n8n-local.service
+# Restart:  sudo systemctl restart n8n-local.service
+# Status:   sudo systemctl status n8n-local.service
+# Logs:     sudo journalctl -u n8n-local.service -f
+# Disable:  sudo systemctl disable n8n-local.service
+#
+# CUSTOMIZATION OPTIONS:
+# =====================
+# - Change ExecStart= to use different proxy (nginx/traefik)
+# - Modify Environment= to override default settings
+# - Adjust Restart= policy as needed
+# - Update User= and Group= for different user
+# - Modify TimeoutStartSec= for slower systems
+
+[Unit]
+Description=N8N-R8 Local Development Environment
+Documentation=https://github.com/your-repo/n8n-r8
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+# Optional: Require specific services if using external databases
+# After=postgresql.service redis.service
+# Requires=postgresql.service redis.service
+
+[Service]
+Type=forking
+User=ram
+Group=ram
+
+# Working directory - UPDATE THIS PATH
+WorkingDirectory=/home/ram/projects/n8n-r8
+
+# Environment file - loads all configuration
+EnvironmentFile=/home/ram/projects/n8n-r8/.env
+EnvironmentFile=-/home/ram/projects/n8n-r8/.env.local
+
+# Additional environment variables
+Environment=COMPOSE_PROJECT_NAME=n8n-r8
+Environment=DOCKER_BUILDKIT=1
+Environment=COMPOSE_DOCKER_CLI_BUILD=1
+
+# Service startup command - CHOOSE ONE:
+
+# Option 1: Basic N8N (default)
+ExecStart=/usr/bin/docker compose -f docker-compose.yml up -d
+
+# Option 2: N8N with Nginx proxy (uncomment to use)
+# ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.nginx.yml up -d
+
+# Option 3: N8N with Traefik proxy (uncomment to use)
+# ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+
+# Option 4: N8N with monitoring (uncomment to use)
+# ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+
+# Option 5: Full stack with proxy and monitoring (uncomment to use)
+# ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.nginx.yml -f docker-compose.monitoring.yml up -d
+
+# Service shutdown command
+ExecStop=/usr/bin/docker compose down
+
+# Health check command (optional)
+ExecReload=/usr/bin/docker compose restart
+
+# Pre-start checks and setup
+ExecStartPre=-/usr/bin/docker compose pull --quiet
+ExecStartPre=-/usr/bin/docker compose down --remove-orphans
+ExecStartPre=/bin/bash -c 'mkdir -p data/{n8n,postgres,redis} logs backups'
+ExecStartPre=/bin/bash -c 'chmod -R 755 data/ || true'
+
+# Post-start verification (optional)
+# ExecStartPost=/bin/sleep 30
+# ExecStartPost=/bin/bash -c 'curl -f http://localhost:5678/healthz || exit 1'
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Timeout settings
+TimeoutStartSec=300
+TimeoutStopSec=60
+
+# Resource limits (optional - adjust as needed)
+# LimitNOFILE=65536
+# LimitNPROC=4096
+# MemoryLimit=4G
+# CPUQuota=200%
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=n8n-r8
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+FinalKillSignal=SIGKILL
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
+
+# Additional service dependencies (uncomment if needed)
+# WantedBy=graphical-session.target  # For desktop environments
+# RequiredBy=nginx.service           # If nginx depends on this service

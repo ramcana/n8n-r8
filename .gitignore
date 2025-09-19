@@ -1,0 +1,286 @@
+# N8N-R8 Git Ignore File
+
+# ===========================================
+# Environment and Secrets
+# ===========================================
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# ===========================================
+# Data Directories (Persistent Storage)
+# ===========================================
+data/
+!data/.gitkeep
+
+# N8N data
+data/n8n/
+data/postgres/
+data/redis/
+data/traefik/
+
+# ===========================================
+# Backup Files
+# ===========================================
+backups/
+*.backup
+*.bak
+*.sql
+*.sql.gz
+*.tar.gz
+
+# ===========================================
+# SSL Certificates and Keys
+# ===========================================
+nginx/ssl/
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# Traefik ACME certificates
+traefik/acme/
+acme.json
+
+# ===========================================
+# Log Files
+# ===========================================
+logs/
+*.log
+*.log.*
+
+# Nginx logs
+nginx/logs/
+/var/log/nginx/
+
+# Traefik logs
+traefik/logs/
+
+# ===========================================
+# Temporary Files
+# ===========================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ===========================================
+# OS Generated Files
+# ===========================================
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===========================================
+# Editor and IDE Files
+# ===========================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*.un~
+Session.vim
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ===========================================
+# Docker Related
+# ===========================================
+
+# Docker Compose override files (except our specific ones)
+docker-compose.override.yml
+docker-compose.local.yml
+docker-compose.dev.yml
+
+# Docker build context
+.dockerignore
+
+# ===========================================
+# Node.js (if extending with custom modules)
+# ===========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+package-lock.json
+yarn.lock
+
+# Custom N8N Nodes
+nodes/dist/
+nodes/node_modules/
+nodes/coverage/
+nodes/*.tgz
+nodes/tsconfig.tsbuildinfo
+
+# ===========================================
+# Python (if using Python scripts)
+# ===========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ===========================================
+# Configuration Backups
+# ===========================================
+*.conf.backup
+*.yml.backup
+*.yaml.backup
+*.json.backup
+
+# ===========================================
+# Custom Overrides
+# ===========================================
+
+# Custom docker-compose files (keep our specific ones)
+!docker-compose.yml
+!docker-compose.nginx.yml
+!docker-compose.traefik.yml
+
+# Custom configuration files
+!nginx/nginx.conf
+!nginx/conf.d/
+!traefik/traefik.yml
+!traefik/dynamic/
+
+# Keep important directories with placeholder files
+!data/.gitkeep
+!nginx/ssl/.gitkeep
+!traefik/logs/.gitkeep
+!backups/.gitkeep
+
+# ===========================================
+# Development and Testing
+# ===========================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# ===========================================
+# Monitoring and Metrics
+# ===========================================
+prometheus/
+grafana/
+metrics/
+
+# ===========================================
+# Custom Scripts and Tools
+# ===========================================
+# Keep our utility scripts
+!scripts/
+
+# But ignore any custom local scripts
+scripts/local/
+scripts/*.local.*
+
+# ===========================================
+# Documentation
+# ===========================================
+# Keep main documentation
+!README.md
+!docs/
+
+# But ignore generated docs
+docs/_build/
+docs/.doctrees/
+
+# ===========================================
+# Deployment
+# ===========================================
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Kubernetes
+*.kubeconfig
+kustomization.yaml
+
+# Ansible
+*.retry
+.vault_pass
+
+# ===========================================
+# Miscellaneous
+# ===========================================
+.env.example.local
+.local
+*.local

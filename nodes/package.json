@@ -1,0 +1,80 @@
+{
+  "name": "n8n-r8-custom-nodes",
+  "version": "1.0.0",
+  "description": "Custom N8N nodes for N8N-R8 environment",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "npm run clean && npm run compile",
+    "build:watch": "npm run clean && npm run compile:watch",
+    "clean": "rimraf dist",
+    "compile": "tsc",
+    "compile:watch": "tsc --watch",
+    "dev": "npm run build:watch",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "prepare": "npm run build",
+    "prepack": "npm run build",
+    "validate": "npm run lint && npm run format:check && npm run test"
+  },
+  "keywords": [
+    "n8n",
+    "n8n-nodes",
+    "n8n-community-nodes",
+    "workflow",
+    "automation",
+    "custom-nodes"
+  ],
+  "author": "N8N-R8 Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-repo/n8n-r8-custom-nodes"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/*.credential.js"
+    ],
+    "nodes": [
+      "dist/nodes/*.node.js"
+    ]
+  },
+  "files": [
+    "dist/**/*",
+    "package.json",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "@types/node": "^18.17.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "eslint": "^8.49.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.1",
+    "jest": "^29.7.0",
+    "prettier": "^3.0.3",
+    "rimraf": "^5.0.1",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "n8n-workflow": "^1.15.0",
+    "n8n-core": "^1.15.0"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "engines": {
+    "node": ">=18.10",
+    "npm": ">=8.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

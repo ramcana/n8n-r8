@@ -9,6 +9,7 @@
 .PHONY: security-init security-scan security-report security-encrypt security-rotate security-status
 .PHONY: docs-serve docs-build docs-validate
 .PHONY: performance-test performance-baseline performance-monitor
+.PHONY: autoupdate-enable autoupdate-disable autoupdate-status autoupdate-check autoupdate-update autoupdate-schedule autoupdate-watchtower
 .PHONY: quick-start quick-nginx quick-traefik quick-monitor quick-secure quick-test quick-full
 
 # Default target
@@ -807,3 +808,75 @@ quick-secure: setup security-init start-secure ## Quick start with security
 quick-test: setup test-validation test-unit ## Quick test (validation + unit tests)
 
 quick-full: setup security-init start-secure monitor-full ## Full setup with security and monitoring
+
+##@ Autoupdate
+
+autoupdate-enable: ## Enable autoupdate functionality
+	@echo "$(GREEN)Enabling autoupdate...$(NC)"
+	@if [ -x "./scripts/autoupdate.sh" ]; then \
+		./scripts/autoupdate.sh enable; \
+	else \
+		echo "$(RED)Autoupdate script not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+autoupdate-disable: ## Disable autoupdate functionality
+	@echo "$(RED)Disabling autoupdate...$(NC)"
+	@if [ -x "./scripts/autoupdate.sh" ]; then \
+		./scripts/autoupdate.sh disable; \
+	else \
+		echo "$(RED)Autoupdate script not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+autoupdate-status: ## Show autoupdate status and configuration
+	@echo "$(BLUE)Checking autoupdate status...$(NC)"
+	@if [ -x "./scripts/autoupdate.sh" ]; then \
+		./scripts/autoupdate.sh status; \
+	else \
+		echo "$(RED)Autoupdate script not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+autoupdate-check: ## Check for available updates
+	@echo "$(BLUE)Checking for available updates...$(NC)"
+	@if [ -x "./scripts/autoupdate.sh" ]; then \
+		./scripts/autoupdate.sh check; \
+	else \
+		echo "$(RED)Autoupdate script not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+autoupdate-update: ## Perform manual update with backup
+	@echo "$(GREEN)Performing manual update...$(NC)"
+	@if [ -x "./scripts/autoupdate.sh" ]; then \
+		./scripts/autoupdate.sh update; \
+	else \
+		echo "$(RED)Autoupdate script not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+autoupdate-watchtower: ## Start Watchtower for automated updates
+	@echo "$(GREEN)Starting Watchtower for automated updates...$(NC)"
+	@if [ -x "./scripts/autoupdate.sh" ]; then \
+		./scripts/autoupdate.sh watchtower; \
+	else \
+		echo "$(RED)Autoupdate script not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+autoupdate-schedule: ## Install cron job for scheduled updates
+	@echo "$(GREEN)Installing scheduled update cron job...$(NC)"
+	@if [ -x "./scripts/autoupdate.sh" ]; then \
+		./scripts/autoupdate.sh schedule; \
+	else \
+		echo "$(RED)Autoupdate script not found or not executable$(NC)"; \
+		exit 1; \
+	fi
+
+start-with-autoupdate: ## Start N8N with Watchtower for automatic updates
+	@echo "$(GREEN)Starting N8N with autoupdate enabled...$(NC)"
+	docker compose -f $(COMPOSE_FILE) -f docker-compose.autoupdate.yml up -d
+	@$(MAKE) --no-print-directory _wait-for-services
+	@$(MAKE) --no-print-directory _show-access-info
+	@echo "$(BLUE)Watchtower is running for automatic updates$(NC)"

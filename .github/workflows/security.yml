@@ -138,7 +138,12 @@ jobs:
 
       - name: Run Checkov on Dockerfiles
         run: |
-          find . -name "Dockerfile*" -type f | xargs checkov -f --framework dockerfile
+          # Check if any Dockerfiles exist before running checkov
+          if find . -name "Dockerfile*" -type f -not -path "*/node_modules/*" | grep -q .; then
+            find . -name "Dockerfile*" -type f -not -path "*/node_modules/*" | xargs checkov -f --framework dockerfile
+          else
+            echo "No Dockerfiles found to scan"
+          fi
 
   security-policy-check:
     name: Security Policy Check

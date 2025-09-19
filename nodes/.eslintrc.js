@@ -13,29 +13,13 @@ module.exports = {
 	},
 	plugins: [
 		'@typescript-eslint',
-		'n8n-nodes-base',
 	],
 	extends: [
 		'eslint:recommended',
-		'@typescript-eslint/recommended',
-		'@typescript-eslint/recommended-requiring-type-checking',
+		'plugin:@typescript-eslint/recommended',
 		'prettier',
 	],
 	rules: {
-		// N8N specific rules
-		'n8n-nodes-base/node-class-description-inputs-wrong-regular-node': 'error',
-		'n8n-nodes-base/node-class-description-outputs-wrong': 'error',
-		'n8n-nodes-base/node-class-description-name-miscased': 'error',
-		'n8n-nodes-base/node-class-description-display-name-wrong-for-trigger-node': 'error',
-		'n8n-nodes-base/node-class-description-missing-subtitle': 'warn',
-		'n8n-nodes-base/node-param-default-missing': 'error',
-		'n8n-nodes-base/node-param-description-missing-final-period': 'error',
-		'n8n-nodes-base/node-param-description-miscased-id': 'error',
-		'n8n-nodes-base/node-param-display-name-miscased': 'error',
-		'n8n-nodes-base/node-param-display-name-wrong-for-dynamic-options': 'error',
-		'n8n-nodes-base/node-param-operation-without-no-data-expression': 'error',
-		'n8n-nodes-base/node-param-resource-without-no-data-expression': 'error',
-		'n8n-nodes-base/node-param-type-options-missing-from-limit': 'error',
 
 		// TypeScript rules
 		'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],

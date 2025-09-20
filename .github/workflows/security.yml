@@ -28,15 +28,17 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
-          output: 'trivy-results.sarif'
+          output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
           exit-code: '0'  # Don't fail the build on vulnerabilities
+          vuln-type: 'os,library'
+          scanners: 'vuln,secret,misconfig'
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: 'trivy-fs-results.sarif'
 
   docker-security-scan:
     name: Docker Security Scan
@@ -56,20 +58,29 @@ jobs:
           - prom/prometheus:v2.54.1
           - grafana/grafana:11.2.2
     steps:
+      - name: Set safe filename
+        id: safe-name
+        run: |
+          # Convert image name to safe filename by replacing special characters
+          SAFE_NAME=$(echo "${{ matrix.image }}" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          echo "filename=${SAFE_NAME}" >> $GITHUB_OUTPUT
+          
       - name: Run Trivy vulnerability scanner on Docker images
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ matrix.image }}
           format: 'sarif'
-          output: 'trivy-${{ matrix.image }}.sarif'
+          output: 'trivy-${{ steps.safe-name.outputs.filename }}.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'  # Don't fail the build on vulnerabilities
+          vuln-type: 'os,library'
+          scanners: 'vuln'
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-${{ matrix.image }}.sarif'
+          sarif_file: 'trivy-${{ steps.safe-name.outputs.filename }}.sarif'
 
   secrets-scan:
     name: Secrets Scan

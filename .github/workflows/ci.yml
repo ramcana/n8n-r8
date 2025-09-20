@@ -347,12 +347,32 @@ jobs:
     if: always()
     steps:
       - name: Notify on success
-        if: needs.lint-and-validate.result == 'success' && needs.security-scan.result == 'success' && needs.test-deployment.result == 'success'
+        if: needs.lint-and-validate.result == 'success' && needs.security-scan.result == 'success' && needs.test-deployment.result == 'success' && needs.build-custom-nodes.result == 'success'
         run: |
           echo "✅ All CI/CD checks passed successfully!"
           
       - name: Notify on failure
-        if: needs.lint-and-validate.result == 'failure' || needs.security-scan.result == 'failure' || needs.test-deployment.result == 'failure'
+        if: needs.lint-and-validate.result == 'failure' || needs.security-scan.result == 'failure' || needs.test-deployment.result == 'failure' || needs.build-custom-nodes.result == 'failure'
         run: |
           echo "❌ CI/CD pipeline failed. Check the logs for details."
+          echo "Job results:"
+          echo "  - lint-and-validate: ${{ needs.lint-and-validate.result }}"
+          echo "  - security-scan: ${{ needs.security-scan.result }}"
+          echo "  - test-deployment: ${{ needs.test-deployment.result }}"
+          echo "  - build-custom-nodes: ${{ needs.build-custom-nodes.result }}"
           exit 1
+
+      - name: Notify on partial completion
+        if: |
+          (needs.lint-and-validate.result == 'success' || needs.lint-and-validate.result == 'skipped') &&
+          (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') &&
+          (needs.test-deployment.result == 'success' || needs.test-deployment.result == 'skipped') &&
+          (needs.build-custom-nodes.result == 'success' || needs.build-custom-nodes.result == 'skipped') &&
+          !(needs.lint-and-validate.result == 'success' && needs.security-scan.result == 'success' && needs.test-deployment.result == 'success' && needs.build-custom-nodes.result == 'success')
+        run: |
+          echo "⚠️  CI/CD pipeline completed with some jobs skipped."
+          echo "Job results:"
+          echo "  - lint-and-validate: ${{ needs.lint-and-validate.result }}"
+          echo "  - security-scan: ${{ needs.security-scan.result }}"
+          echo "  - test-deployment: ${{ needs.test-deployment.result }}"
+          echo "  - build-custom-nodes: ${{ needs.build-custom-nodes.result }}"

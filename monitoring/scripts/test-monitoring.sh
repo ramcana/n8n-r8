@@ -207,7 +207,8 @@ test_system_requirements() {
     fi
     
     # Check disk space
-    local disk_avail=$(df -BG . | awk 'NR==2{print $4}' | sed 's/G//')
+    local disk_avail
+    disk_avail=$(df -BG . | awk 'NR==2{print $4}' | sed 's/G//')
     if [[ $disk_avail -ge 10 ]]; then
         log_pass "Sufficient disk space available (${disk_avail}GB)"
     else

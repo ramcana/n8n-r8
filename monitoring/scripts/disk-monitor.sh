@@ -14,6 +14,7 @@ CONFIG_FILE="$MONITORING_DIR/config/monitor.conf"
 
 # Load configuration
 if [[ -f "$CONFIG_FILE" ]]; then
+    # shellcheck source=/dev/null
     source "$CONFIG_FILE"
 fi
 

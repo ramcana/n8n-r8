@@ -76,7 +76,7 @@ usage() {
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         error "This operation requires root privileges"
-        echo "Please run with sudo: sudo $0 $*"
+        echo "Please run with sudo: sudo $0"
         exit 1
     fi
 }
@@ -114,8 +114,10 @@ list_services() {
     if [[ -d "$SYSTEMD_DIR" ]]; then
         for service_file in "$SYSTEMD_DIR"/*.service; do
             if [[ -f "$service_file" ]]; then
-                local filename=$(basename "$service_file")
-                local description=$(grep "^Description=" "$service_file" | cut -d'=' -f2- || echo "No description")
+                local filename
+                local description
+                filename=$(basename "$service_file")
+                description=$(grep "^Description=" "$service_file" | cut -d'=' -f2- || echo "No description")
                 printf "  %-20s %s\n" "$filename" "$description"
             fi
         done

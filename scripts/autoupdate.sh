@@ -24,7 +24,6 @@ DEFAULT_UPDATE_CHECK_INTERVAL=86400  # 24 hours
 DEFAULT_MAX_BACKUP_RETENTION=7       # Keep 7 days of backups
 
 # Colors for output
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
@@ -460,7 +459,6 @@ main() {
     local force_update=false
     local no_backup=false
     local no_rollback=false
-    local verbose=false
     
     # Parse options
     while [[ $# -gt 0 ]]; do
@@ -470,7 +468,7 @@ main() {
                 exit 0
                 ;;
             -v|--verbose)
-                verbose=true
+                # Verbose mode - could be used for debugging
                 shift
                 ;;
             -f|--force)

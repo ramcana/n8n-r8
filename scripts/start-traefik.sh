@@ -146,13 +146,9 @@ setup_ssl_config() {
     source "$PROJECT_DIR/.env" 2>/dev/null || true
     
     local ssl_email=${SSL_EMAIL:-"admin@localhost"}
-    local acme_server=""
-    
     if [[ "$use_staging" == "true" ]]; then
-        acme_server="https://acme-staging-v02.api.letsencrypt.org/directory"
         warning "Using Let's Encrypt STAGING server - certificates will not be trusted!"
     else
-        acme_server="https://acme-v02.api.letsencrypt.org/directory"
         info "Using Let's Encrypt PRODUCTION server"
     fi
     

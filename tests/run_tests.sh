@@ -205,9 +205,6 @@ run_test_category() {
         return 0
     fi
     
-    local category_passed=0
-    local category_failed=0
-    local category_skipped=0
     
     if [[ "$TEST_PARALLEL" == "true" && ${#test_files[@]} -gt 1 ]]; then
         log_info "Running tests in parallel"

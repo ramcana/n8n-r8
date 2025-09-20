@@ -11,10 +11,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Configuration
 CONFIG_FILE="${PROJECT_ROOT}/.env"
-TEMPLATE_FILE="${PROJECT_ROOT}/.env.autoupdate.example"
 
 # Colors for output
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'

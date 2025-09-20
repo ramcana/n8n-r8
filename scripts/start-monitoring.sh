@@ -319,7 +319,6 @@ main() {
     local detach=false
     local build=false
     local force_recreate=false
-    local no_deps=false
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -340,7 +339,7 @@ main() {
                 shift
                 ;;
             --no-deps)
-                no_deps=true
+                # No dependencies mode - could be implemented
                 shift
                 ;;
             basic|full|minimal|stop)

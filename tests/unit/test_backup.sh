@@ -104,7 +104,6 @@ test_backup_filename_generation() {
     
     # Test that backup filename follows expected pattern
     local timestamp=$(date '+%Y%m%d_%H%M%S')
-    local expected_pattern="n8n_backup_[0-9]{8}_[0-9]{6}"
     
     # Create a simple test that generates a filename
     local test_filename="n8n_backup_${timestamp}.tar.gz"

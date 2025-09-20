@@ -12,7 +12,6 @@ source "$SCRIPT_DIR/../test_config.sh"
 
 # Test variables
 PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-TEST_COMPOSE_FILE=""
 TEST_ENV_FILE=""
 
 # Test setup
@@ -362,6 +361,11 @@ EOF
     # Try to start with invalid config (should handle gracefully)
     local start_result=0
     docker compose up -d 2>/dev/null || start_result=$?
+    
+    # Check if start failed as expected
+    if [[ $start_result -ne 0 ]]; then
+        log_info "Invalid config properly rejected (exit code: $start_result)"
+    fi
     
     # Restore valid config
     restore_config "$PROJECT_ROOT/.env"

@@ -36,7 +36,11 @@ jobs:
 
       - name: Install dependencies
         run: |
+          echo "Current directory: $(pwd)"
+          echo "Checking for package-lock.json in nodes directory:"
+          ls -la nodes/package-lock.json
           cd nodes
+          echo "Changed to directory: $(pwd)"
           npm ci
 
       - name: Lint shell scripts
@@ -191,7 +195,11 @@ jobs:
 
       - name: Install dependencies
         run: |
+          echo "Current directory: $(pwd)"
+          echo "Checking for package-lock.json in nodes directory:"
+          ls -la nodes/package-lock.json
           cd nodes
+          echo "Changed to directory: $(pwd)"
           npm ci
 
       - name: Build custom nodes

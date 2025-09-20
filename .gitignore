@@ -157,7 +157,7 @@ yarn-debug.log*
 yarn-error.log*
 .npm
 .yarn-integrity
-package-lock.json
+/package-lock.json
 yarn.lock
 
 # Custom N8N Nodes

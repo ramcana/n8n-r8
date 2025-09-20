@@ -7,11 +7,8 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
+      timezone: "America/New_York"
     open-pull-requests-limit: 10
-    reviewers:
-      - "ramcana"
-    assignees:
-      - "ramcana"
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
@@ -23,9 +20,22 @@ updates:
       - dependency-type: "direct"
       - dependency-type: "indirect"
     ignore:
-      # Ignore major version updates for core dependencies
+      # Ignore major version updates for core dependencies to avoid breaking changes
       - dependency-name: "n8n-*"
         update-types: ["version-update:semver-major"]
+    # Group related updates together
+    groups:
+      n8n-core:
+        patterns:
+          - "n8n-*"
+      dev-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "prettier*"
+          - "jest*"
+          - "typescript*"
 
   # Enable version updates for Docker
   - package-ecosystem: "docker"
@@ -34,17 +44,29 @@ updates:
       interval: "weekly"
       day: "monday"  
       time: "10:00"
+      timezone: "America/New_York"
     open-pull-requests-limit: 5
-    reviewers:
-      - "ramcana"
-    assignees:
-      - "ramcana"
     commit-message:
       prefix: "docker"
       include: "scope"
     labels:
       - "docker"
       - "security"
+    # Group Docker updates by service type
+    groups:
+      core-services:
+        patterns:
+          - "n8nio/n8n*"
+          - "postgres*"
+          - "redis*"
+      web-services:
+        patterns:
+          - "nginx*"
+          - "traefik*"
+      monitoring:
+        patterns:
+          - "prom/prometheus*"
+          - "grafana/grafana*"
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
@@ -53,14 +75,16 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "11:00"
+      timezone: "America/New_York"
     open-pull-requests-limit: 5
-    reviewers:
-      - "ramcana"
-    assignees:
-      - "ramcana"
     commit-message:
       prefix: "ci"
       include: "scope"
     labels:
       - "github-actions"
       - "security"
+    # Group GitHub Actions updates
+    groups:
+      actions:
+        patterns:
+          - "*"

@@ -62,10 +62,13 @@ error_exit() {
 cleanup() {
     if [[ -f "$LOCK_FILE" ]]; then
         rm -f "$LOCK_FILE"
+    fi
+}
 # Trap for cleanup
 trap cleanup EXIT
 # Check if script is already running
 check_lock() {
+    if [[ -f "$LOCK_FILE" ]]; then
         local pid
         pid=$(cat "$LOCK_FILE")
         if kill -0 "$pid" 2>/dev/null; then
@@ -74,11 +77,14 @@ check_lock() {
             log "WARN" "Stale lock file found, removing..."
             rm -f "$LOCK_FILE"
         fi
+    fi
     echo $$ > "$LOCK_FILE"
+}
 # Initialize directories
 init_directories() {
     mkdir -p "$BACKUP_DIR" "$LOG_DIR"
     chmod 755 "$BACKUP_DIR" "$LOG_DIR"
+}
 # Send notification
 send_notification() {
     local subject="$1"
@@ -112,6 +118,7 @@ EOF
         curl -X POST -H 'Content-type: application/json' \
              --data "$payload" \
              "$SLACK_WEBHOOK_URL" >/dev/null 2>&1 || true
+    fi
     # Email notification
     if [[ -n "$NOTIFICATION_EMAIL" && -n "$SMTP_SERVER" ]]; then
         local email_body="Subject: $subject\n\n$message"
@@ -119,6 +126,9 @@ EOF
             echo -e "$email_body" | sendmail "$NOTIFICATION_EMAIL"
         elif command -v mail >/dev/null 2>&1; then
             echo -e "$message" | mail -s "$subject" "$NOTIFICATION_EMAIL"
+        fi
+    fi
+}
 # Check for available updates
 check_updates() {
     log "INFO" "Checking for available updates..."
@@ -150,11 +160,15 @@ check_updates() {
     latest_redis=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.ID}}" | grep "redis:7-alpine" | awk '{print $2}' || echo "")
     if [[ "$current_redis" != "$latest_redis" && -n "$latest_redis" ]]; then
         log "INFO" "Redis update available: $current_redis -> $latest_redis"
+        updates_available=true
+    fi
     if [[ "$updates_available" == "true" ]]; then
         log "INFO" "Updates are available"
+        return 0
     else
         log "INFO" "No updates available"
         return 1
+    fi
 # Create backup before update
 create_backup() {
     log "INFO" "Creating backup before update..."
@@ -164,8 +178,12 @@ create_backup() {
             log "INFO" "Backup created successfully: $backup_name"
             echo "$backup_name" > "${BACKUP_DIR}/.last_pre_update_backup"
             return 0
+        else
             error_exit "Failed to create backup before update"
+        fi
+    else
         error_exit "Backup script not found or not executable"
+    fi
 # Perform update
 perform_update() {
     log "INFO" "Starting update process..."
@@ -173,10 +191,12 @@ perform_update() {
     log "INFO" "Stopping services..."
     if ! docker compose down --timeout 30; then
         error_exit "Failed to stop services"
+    fi
     # Start services with new images
     log "INFO" "Starting services with updated images..."
     if ! docker compose up -d; then
         error_exit "Failed to start services after update"
+    fi
     # Wait for services to be healthy
     log "INFO" "Waiting for services to be healthy..."
     local max_wait=300  # 5 minutes
@@ -200,6 +220,7 @@ rollback() {
     log "WARN" "Rolling back to previous backup..."
     if [[ ! -f "${BACKUP_DIR}/.last_pre_update_backup" ]]; then
         error_exit "No pre-update backup found for rollback"
+    fi
     local backup_name
     backup_name=$(cat "${BACKUP_DIR}/.last_pre_update_backup")
     if [[ -x "$SCRIPT_DIR/restore.sh" ]]; then
@@ -207,13 +228,18 @@ rollback() {
         if "$SCRIPT_DIR/restore.sh" "$backup_name" --force; then
             log "INFO" "Rollback completed successfully"
             send_notification "N8N Update Rollback" "Update failed and system was rolled back to backup: $backup_name" "warning"
+        else
             error_exit "Rollback failed - manual intervention required"
+        fi
+    else
         error_exit "Restore script not found - manual rollback required"
+    fi
 # Clean old backups
 cleanup_old_backups() {
     log "INFO" "Cleaning up old backups (keeping last $MAX_BACKUP_RETENTION days)..."
     find "$BACKUP_DIR" -name "pre-update-*.tar.gz" -type f -mtime +$MAX_BACKUP_RETENTION -delete 2>/dev/null || true
     find "$BACKUP_DIR" -name "pre-update-*.sql" -type f -mtime +$MAX_BACKUP_RETENTION -delete 2>/dev/null || true
+}
 # Update with Watchtower
 update_with_watchtower() {
     log "INFO" "Starting Watchtower update..."
@@ -224,6 +250,7 @@ update_with_watchtower() {
         -e WATCHTOWER_INCLUDE_STOPPED=true \
         watchtower
     log "INFO" "Watchtower update completed"
+}
 # Main update function
 main_update() {
     local update_method="${1:-manual}"
@@ -231,27 +258,38 @@ main_update() {
     # Check if updates are available
     if ! check_updates; then
         log "INFO" "No updates available, exiting"
+        return 0
+    fi
     # Create backup if enabled
     if [[ "$BACKUP_BEFORE_UPDATE" == "true" ]]; then
         create_backup
+    fi
     # Perform update
     local update_success=false
     case "$update_method" in
         "watchtower")
             if update_with_watchtower; then
                 update_success=true
+            fi
             ;;
         "manual"|*)
             if perform_update; then
+                update_success=true
+            fi
+            ;;
     esac
     if [[ "$update_success" == "true" ]]; then
         log "INFO" "Update completed successfully"
         send_notification "N8N Update Success" "N8N-R8 has been updated successfully" "success"
         cleanup_old_backups
+    else
         log "ERROR" "Update failed"
         if [[ "$ROLLBACK_ON_FAILURE" == "true" && "$BACKUP_BEFORE_UPDATE" == "true" ]]; then
             rollback
+        else
             send_notification "N8N Update Failed" "N8N-R8 update failed. Manual intervention may be required." "error"
+        fi
+    fi
 # Show usage
 usage() {
     cat << EOF
@@ -283,16 +321,23 @@ enable_autoupdate() {
     # Update .env file
     if grep -q "^AUTOUPDATE_ENABLED=" "$CONFIG_FILE" 2>/dev/null; then
         sed -i 's/^AUTOUPDATE_ENABLED=.*/AUTOUPDATE_ENABLED=true/' "$CONFIG_FILE"
+    else
         echo "AUTOUPDATE_ENABLED=true" >> "$CONFIG_FILE"
+    fi
     log "INFO" "Autoupdate enabled"
+}
 # Disable autoupdate
 disable_autoupdate() {
     log "INFO" "Disabling autoupdate..."
+    if grep -q "^AUTOUPDATE_ENABLED=" "$CONFIG_FILE" 2>/dev/null; then
         sed -i 's/^AUTOUPDATE_ENABLED=.*/AUTOUPDATE_ENABLED=false/' "$CONFIG_FILE"
+    else
         echo "AUTOUPDATE_ENABLED=false" >> "$CONFIG_FILE"
+    fi
     # Remove cron job
     crontab -l 2>/dev/null | grep -v "$0" | crontab - 2>/dev/null || true
     log "INFO" "Autoupdate disabled"
+}
 # Show status
 show_status() {
     load_config
@@ -309,7 +354,9 @@ show_status() {
     if crontab -l 2>/dev/null | grep -q "$0"; then
         echo -e "${GREEN}Cron job installed${NC}"
         crontab -l 2>/dev/null | grep "$0"
+    else
         echo -e "${YELLOW}No cron job installed${NC}"
+    fi
 # Install cron job
 install_cron() {
     log "INFO" "Installing cron job for scheduled updates..."
@@ -345,15 +392,21 @@ main() {
                 command="$1"
             *)
                 echo "Unknown option: $1"
+                usage
                 exit 1
+                ;;
+        esac
+    done
     # Initialize
     init_directories
     check_lock
     # Override config with command line options
     if [[ "$no_backup" == "true" ]]; then
         BACKUP_BEFORE_UPDATE=false
+    fi
     if [[ "$no_rollback" == "true" ]]; then
         ROLLBACK_ON_FAILURE=false
+    fi
     # Execute command
     case "$command" in
         check)
@@ -361,25 +414,39 @@ main() {
                 echo -e "${GREEN}Updates are available${NC}"
             else
                 echo -e "${BLUE}No updates available${NC}"
+            fi
+            ;;
         update)
             if [[ "$AUTOUPDATE_ENABLED" != "true" && "$force_update" != "true" ]]; then
                 error_exit "Autoupdate is disabled. Use --force to override or run 'enable' first."
             main_update "manual"
+            ;;
         watchtower)
             main_update "watchtower"
+            ;;
         enable)
             enable_autoupdate
+            ;;
         disable)
             disable_autoupdate
+            ;;
         status)
             show_status
+            ;;
         schedule)
             install_cron
+            ;;
         "")
             echo "No command specified"
             usage
             exit 1
+            ;;
         *)
             echo "Unknown command: $command"
+            usage
+            exit 1
+            ;;
+    esac
+}
 # Run main function
 main "$@"

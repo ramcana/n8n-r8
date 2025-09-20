@@ -19,10 +19,13 @@ log() {
 }
 error() {
     echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
+}
 warning() {
     echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
+}
 info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
+}
 # Usage function
 usage() {
     echo "Usage: $0 [OPTIONS] [COMMAND]"
@@ -64,9 +67,13 @@ check_prerequisites() {
     major_version=$(echo "$node_version" | cut -d. -f1)
     if [[ $major_version -lt 18 ]]; then
         error "Node.js version $node_version is not supported. Please install Node.js 18 or higher."
+        exit 1
+    fi
     # Check if npm is installed
     if ! command -v npm >/dev/null 2>&1; then
         error "npm is not installed. Please install npm first."
+        exit 1
+    fi
     log "Prerequisites check passed (Node.js $node_version)"
 # Install dependencies
 install_dependencies() {
@@ -74,6 +81,8 @@ install_dependencies() {
     cd "$NODES_DIR"
     if [[ ! -f "package.json" ]]; then
         error "package.json not found in $NODES_DIR"
+        exit 1
+    fi
     # Install dependencies
     npm install
     log "Dependencies installed successfully"
@@ -99,6 +108,7 @@ run_lint() {
     else
         npm run lint
         log "Linting completed"
+    fi
 # Format code
 format_code() {
     log "Formatting code with Prettier..."
@@ -111,8 +121,10 @@ run_tests() {
     if [[ "$coverage" == "true" ]]; then
         npm run test:coverage
         log "Tests completed with coverage report"
+    else
         npm run test
         log "Tests completed"
+    fi
 # Build nodes
 build_nodes() {
     local production="$1"
@@ -122,15 +134,21 @@ build_nodes() {
     if [[ "$production" == "true" ]]; then
         export NODE_ENV=production
         info "Building for production"
+    else
         export NODE_ENV=development
         info "Building for development"
+    fi
     # Run TypeScript compilation
     if [[ "$verbose" == "true" ]]; then
         npm run compile -- --verbose
+    else
         npm run compile
+    fi
     # Verify build output
     if [[ ! -d "dist" ]]; then
         error "Build failed - dist directory not created"
+        return 1
+    fi
     # Count built files
     local node_files
     node_files=$(find dist -name "*.node.js" | wc -l)
@@ -139,9 +157,11 @@ build_nodes() {
     log "Build completed successfully"
     info "Built $node_files node(s) and $credential_files credential(s)"
     # List built files
+    if [[ "$verbose" == "true" ]]; then
         echo ""
         info "Built files:"
         find dist -name "*.js" | sed 's/^/  /'
+    fi
 # Watch for changes
 watch_build() {
     log "Starting watch mode..."
@@ -165,10 +185,17 @@ validate_all() {
     # Run tests
     if [[ "$skip_tests" != "true" ]]; then
         if ! run_tests false; then
+            validation_failed=true
+        fi
+    fi
     # Try to build
     if ! build_nodes false false; then
+        validation_failed=true
+    fi
     if [[ "$validation_failed" == "true" ]]; then
         error "Validation failed"
+        return 1
+    fi
     log "All validation checks passed"
 # Package nodes for distribution
 package_nodes() {
@@ -199,7 +226,9 @@ show_build_info() {
         echo "  Built Nodes: $node_count"
         echo "  Built Credentials: $credential_count"
         echo "  Build Size: $(du -sh dist | cut -f1)"
+    else
         echo "  Build Status: Not built"
+    fi
 # Main function
 main() {
     local command="build"
@@ -233,6 +262,7 @@ main() {
     log "N8N Custom Nodes Build System"
     log "=============================="
     # Change to nodes directory
+    cd "$NODES_DIR"
     # Execute command
     case "$command" in
         "build")
@@ -240,26 +270,38 @@ main() {
             build_nodes "$production" "$verbose"
             ;;
         "watch")
+            check_prerequisites
             watch_build
+            ;;
         "clean")
             clean_build
+            ;;
         "lint")
             run_lint true
+            ;;
         "format")
             format_code
+            ;;
         "test")
             run_tests true
+            ;;
         "validate")
             validate_all "$skip_tests" "$skip_lint"
+            ;;
         "install")
+            check_prerequisites
             install_dependencies
+            ;;
         "package")
             package_nodes
+            ;;
         "info")
             show_build_info
+            ;;
         *)
             error "Unknown command: $command"
             usage
+            ;;
     esac
 # Run main function
 main "$@"

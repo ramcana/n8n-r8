@@ -41,9 +41,13 @@ check_prerequisites() {
     # Check Docker Compose
     if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
         log "ERROR" "Docker Compose is not available"
+        exit 1
+    fi
     # Check if in project directory
     if [[ ! -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
         log "ERROR" "Not in N8N-R8 project directory"
+        exit 1
+    fi
     log "INFO" "Prerequisites check passed"
 # Interactive configuration
 interactive_config() {
@@ -60,6 +64,7 @@ interactive_config() {
     if [[ "$enable_autoupdate" == "false" ]]; then
         log "INFO" "Autoupdate disabled. You can enable it later with: make autoupdate-enable"
         return 0
+    fi
     # Update method
     echo -e "${YELLOW}2. Choose Update Method${NC}"
     echo "1) Watchtower (Recommended - Fully automated)"
@@ -76,7 +81,9 @@ interactive_config() {
     echo -e "${YELLOW}3. Backup Settings${NC}"
     read -p "Create backup before updates? (Y/n): " -n 1 -r
     local backup_before_update="true"
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
         backup_before_update="false"
+    fi
     local rollback_on_failure="true"
     if [[ "$backup_before_update" == "true" ]]; then
         read -p "Rollback on update failure? (Y/n): " -n 1 -r
@@ -88,7 +95,9 @@ interactive_config() {
     echo -e "${YELLOW}4. Notification Settings${NC}"
     read -p "Enable notifications? (Y/n): " -n 1 -r
     local notification_enabled="true"
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
         notification_enabled="false"
+    fi
     local slack_webhook=""
     local notification_email=""
     if [[ "$notification_enabled" == "true" ]]; then
@@ -111,6 +120,8 @@ interactive_config() {
             echo "  0 2 * * 0     - Weekly on Sunday at 2 AM"
             echo "  0 2 1 * *     - Monthly on 1st at 2 AM"
             read -r update_schedule
+        fi
+    fi
     # Apply configuration
     echo -e "${BLUE}Applying configuration...${NC}"
     # Update .env file
@@ -124,8 +135,11 @@ interactive_config() {
             ;;
         "scheduled")
             setup_scheduled
+            ;;
         "manual")
             log "INFO" "Manual update mode configured"
+            ;;
+    esac
     # Show summary
     show_summary "$update_method"
 # Update .env file
@@ -141,6 +155,7 @@ update_env_file() {
     # Backup existing .env
     if [[ -f "$CONFIG_FILE" ]]; then
         cp "$CONFIG_FILE" "${CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
     # Add autoupdate settings to .env
     {
         echo "# Autoupdate Configuration (added by setup script)"
@@ -151,8 +166,10 @@ update_env_file() {
         echo "AUTOUPDATE_CRON_SCHEDULE=\"$update_schedule\""
         if [[ -n "$slack_webhook" ]]; then
             echo "SLACK_WEBHOOK_URL=$slack_webhook"
+        fi
         if [[ -n "$notification_email" ]]; then
             echo "NOTIFICATION_EMAIL=$notification_email"
+        fi
         echo "MAX_BACKUP_RETENTION=7"
         echo "UPDATE_CHECK_INTERVAL=86400"
         echo "WATCHTOWER_POLL_INTERVAL=86400"
@@ -177,18 +194,29 @@ show_summary() {
     local update_method="$1"
     echo -e "${GREEN}✅ Autoupdate Setup Complete!${NC}"
     echo -e "${GREEN}==============================${NC}"
+    case "$update_method" in
+        "watchtower")
             echo -e "${BLUE}Update Method:${NC} Watchtower (Fully Automated)"
             echo -e "${BLUE}Next Steps:${NC}"
             echo "  1. Start N8N with autoupdate: make start-with-autoupdate"
             echo "  2. Check status: make autoupdate-status"
             echo "  3. View logs: docker compose logs watchtower"
+            ;;
+        "scheduled")
             echo -e "${BLUE}Update Method:${NC} Scheduled Script"
+            echo -e "${BLUE}Next Steps:${NC}"
             echo "  1. Check cron job: crontab -l"
+            echo "  2. Manual update: make autoupdate-update"
             echo "  3. View logs: tail -f logs/autoupdate.log"
+            ;;
+        "manual")
             echo -e "${BLUE}Update Method:${NC} Manual Only"
+            echo -e "${BLUE}Next Steps:${NC}"
             echo "  1. Check for updates: make autoupdate-check"
             echo "  2. Perform update: make autoupdate-update"
             echo "  3. Check status: make autoupdate-status"
+            ;;
+    esac
     echo -e "${BLUE}Useful Commands:${NC}"
     echo "  make autoupdate-status    # Check autoupdate status"
     echo "  make autoupdate-check     # Check for available updates"
@@ -236,11 +264,17 @@ main() {
                 shift
             -d|--default)
                 interactive=false
+                shift
+                ;;
             -s|--status)
                 show_status=true
+                shift
+                ;;
             *)
                 echo "Unknown option: $1"
+                usage
                 exit 1
+                ;;
         esac
     done
     # Show status if requested
@@ -249,6 +283,8 @@ main() {
             "$SCRIPT_DIR/autoupdate.sh" status
         else
             log "ERROR" "Autoupdate script not found"
+            exit 1
+        fi
         exit 0
     # Check prerequisites
     check_root
@@ -256,6 +292,8 @@ main() {
     # Run setup
     if [[ "$interactive" == "true" ]]; then
         interactive_config
+    else
         non_interactive_setup
+    fi
 # Run main function
 main "$@"

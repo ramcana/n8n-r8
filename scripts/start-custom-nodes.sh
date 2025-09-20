@@ -19,10 +19,13 @@ log() {
 }
 error() {
     echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
+}
 warning() {
     echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
+}
 info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
+}
 # Usage function
 usage() {
     echo "Usage: $0 [OPTIONS] [MODE]"
@@ -42,6 +45,7 @@ usage() {
     echo "  $0 build -d         # Build and start in background"
     echo "  $0 --proxy nginx    # Start with nginx proxy"
     exit 1
+}
 # Check prerequisites
 check_prerequisites() {
     log "Checking prerequisites..."
@@ -54,10 +58,15 @@ check_prerequisites() {
     # Check if nodes directory exists
     if [[ ! -d "$NODES_DIR" ]]; then
         error "Nodes directory not found: $NODES_DIR"
+        exit 1
+    fi
     # Check if package.json exists
     if [[ ! -f "$NODES_DIR/package.json" ]]; then
         error "package.json not found in nodes directory"
+        exit 1
+    fi
     log "Prerequisites check passed"
+}
 # Setup nodes development environment
 setup_nodes_environment() {
     log "Setting up nodes development environment..."
@@ -68,9 +77,11 @@ setup_nodes_environment() {
     if [[ ! -d "node_modules" ]]; then
         log "Installing node dependencies..."
         npm install
+    fi
     # Create assets directory for icons
     mkdir -p assets/icons
     log "Nodes environment setup completed"
+}
 # Build custom nodes
 build_nodes() {
     local production="$1"
@@ -80,6 +91,7 @@ build_nodes() {
     if [[ "$clean" == "true" ]]; then
         log "Cleaning previous build..."
         npm run clean 2>/dev/null || rm -rf dist/
+    fi
     # Build nodes
     if [[ "$production" == "true" ]]; then
         log "Building for production..."
@@ -87,14 +99,18 @@ build_nodes() {
     else
         log "Building for development..."
         npm run build
+    fi
     # Verify build
     if [[ ! -d "dist" ]] || [[ -z "$(ls -A dist 2>/dev/null)" ]]; then
         error "Build failed - no output in dist directory"
+        return 1
+    fi
     local node_count
     node_count=$(find dist -name "*.node.js" 2>/dev/null | wc -l)
     local credential_count
     credential_count=$(find dist -name "*.credential.js" 2>/dev/null | wc -l)
     log "Build completed: $node_count node(s), $credential_count credential(s)"
+}
 # Start development environment
 start_development() {
     local detach="$1"
@@ -107,8 +123,11 @@ start_development() {
         docker compose "${compose_files[@]}" --profile dev up -d
         log "Development environment started in background"
         show_development_info
+    else
         log "Starting development environment with logs (Press Ctrl+C to stop)..."
         docker compose "${compose_files[@]}" --profile dev up
+    fi
+}
 # Start production environment
 start_production() {
     local proxy="$2"
@@ -117,7 +136,9 @@ start_production() {
     # Build nodes for production
     if [[ "$no_build" != "true" ]]; then
         build_nodes true false
+    fi
     # Prepare compose files
+    local compose_files=("-f" "$PROJECT_DIR/docker-compose.yml" "-f" "$PROJECT_DIR/docker-compose.custom-nodes.yml")
     # Add proxy if specified
     if [[ -n "$proxy" ]]; then
         case "$proxy" in
@@ -126,15 +147,22 @@ start_production() {
                 ;;
             "traefik")
                 compose_files+=("-f" "$PROJECT_DIR/docker-compose.traefik.yml")
+                ;;
             *)
                 error "Unknown proxy type: $proxy"
                 exit 1
+                ;;
         esac
+    fi
+    if [[ "$detach" == "true" ]]; then
         docker compose "${compose_files[@]}" up -d
         log "Production environment started in background"
         show_production_info "$proxy"
+    else
         log "Starting production environment with logs (Press Ctrl+C to stop)..."
         docker compose "${compose_files[@]}" up
+    fi
+}
 # Show development info
 show_development_info() {
     log "Development Environment Information:"
@@ -152,16 +180,21 @@ show_development_info() {
     echo "  - Custom nodes are automatically rebuilt on file changes"
     echo "  - N8N container will restart when nodes are rebuilt"
     echo "  - Check the development container logs for build status"
+}
 # Show production info
 show_production_info() {
     local proxy="$1"
     log "Production Environment Information:"
-                echo "  🌐 N8N Web Interface: http://localhost (via Nginx)"
-                echo "  🔒 SSL: Configure certificates in nginx/ssl/"
-                echo "  🌐 N8N Web Interface: http://localhost (via Traefik)"
-                echo "  📊 Traefik Dashboard: http://localhost:8080"
-                echo "  🔒 SSL: Automatic Let's Encrypt certificates"
+    if [[ "$proxy" == "nginx" ]]; then
+        echo "  🌐 N8N Web Interface: http://localhost (via Nginx)"
+        echo "  🔒 SSL: Configure certificates in nginx/ssl/"
+    elif [[ "$proxy" == "traefik" ]]; then
+        echo "  🌐 N8N Web Interface: http://localhost (via Traefik)"
+        echo "  📊 Traefik Dashboard: http://localhost:8080"
+        echo "  🔒 SSL: Automatic Let's Encrypt certificates"
+    else
         echo "  🌐 N8N Web Interface: http://localhost:5678"
+    fi
     echo "  📁 Custom Nodes: Mounted from $NODES_DIR/dist"
     echo "  📊 Node Status: $(find "$NODES_DIR/dist" -name "*.node.js" 2>/dev/null | wc -l) node(s) available"
     echo "  📋 Management Commands:"
@@ -169,18 +202,22 @@ show_production_info() {
     echo "    Restart N8N:       docker compose restart n8n"
     echo "    Update nodes:      ./scripts/start-custom-nodes.sh build -d"
     echo "    Stop environment:  docker compose down"
+}
 # Validate custom nodes
 validate_nodes() {
     log "Validating custom nodes..."
     # Run validation
     if [[ -x "scripts/build.sh" ]]; then
         ./scripts/build.sh validate
+    else
         npm run validate 2>/dev/null || {
             npm run lint
             npm run test
             npm run build
         }
+    fi
     log "Node validation completed"
+}
 # Main function
 main() {
     local mode="build"
@@ -193,21 +230,36 @@ main() {
         case $1 in
             -h|--help)
                 usage
+                ;;
             -d|--detach)
                 detach=true
                 shift
+                ;;
             --clean)
                 clean=true
+                shift
+                ;;
             --no-build)
                 no_build=true
+                shift
+                ;;
             --proxy)
                 proxy="$2"
                 shift 2
+                ;;
             dev|build|production|validate)
                 mode="$1"
+                shift
+                ;;
             -*)
                 error "Unknown option: $1"
+                usage
+                ;;
+            *)
                 error "Unknown argument: $1"
+                usage
+                ;;
+        esac
     done
     log "N8N-R8 Custom Nodes Development Environment"
     log "==========================================="
@@ -222,12 +274,18 @@ main() {
             ;;
         "build")
             start_production "$detach" "$proxy" "$no_build"
+            ;;
         "production")
+            start_production "$detach" "$proxy" "$no_build"
+            ;;
         "validate")
             validate_nodes
+            ;;
         *)
             error "Unknown mode: $mode"
             usage
+            ;;
     esac
+}
 # Run main function
 main "$@"

@@ -18,10 +18,13 @@ log() {
 }
 error() {
     echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
+}
 warning() {
     echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
+}
 info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
+}
 # Usage function
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -39,6 +42,7 @@ usage() {
     echo "  $0 -f -v            # Force stop and remove volumes"
     echo "  $0 --kill           # Kill all containers immediately"
     exit 1
+}
 # Check Docker availability
 check_docker() {
     if ! command -v docker >/dev/null 2>&1; then
@@ -49,7 +53,9 @@ check_docker() {
     if ! docker info >/dev/null 2>&1; then
         warning "Docker daemon is not running"
         return 1
+    fi
     return 0
+}
 # Detect running configurations
 detect_running_configurations() {
     log "Detecting running N8N-R8 configurations..."
@@ -57,22 +63,28 @@ detect_running_configurations() {
     # Check for basic configuration
     if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
         configurations+=("basic")
+    fi
     # Check for nginx configuration
     if docker compose -f "$PROJECT_DIR/docker-compose.yml" -f "$PROJECT_DIR/docker-compose.nginx.yml" ps -q 2>/dev/null | grep -q .; then
         configurations+=("nginx")
+    fi
     # Check for traefik configuration
     if docker compose -f "$PROJECT_DIR/docker-compose.yml" -f "$PROJECT_DIR/docker-compose.traefik.yml" ps -q 2>/dev/null | grep -q .; then
         configurations+=("traefik")
+    fi
     # Check for monitoring configuration
     if docker compose -f "$PROJECT_DIR/docker-compose.yml" -f "$PROJECT_DIR/docker-compose.monitoring.yml" ps -q 2>/dev/null | grep -q .; then
         configurations+=("monitoring")
+    fi
     # Check for any N8N-related containers by name pattern
     local n8n_containers
     n8n_containers=$(docker ps --format "{{.Names}}" | grep -E "^n8n" || true)
     if [[ -n "$n8n_containers" ]]; then
         configurations+=("containers")
+    fi
     # Remove duplicates
     printf '%s\n' "${configurations[@]}" | sort -u
+}
 # Show running services
 show_running_services() {
     log "Current running services:"
@@ -80,7 +92,7 @@ show_running_services() {
     local compose_files=(
         "docker-compose.yml"
         "docker-compose.yml -f docker-compose.nginx.yml"
-        "docker-compose.yml -f docker-compose.traefik.yml" 
+        "docker-compose.yml -f docker-compose.traefik.yml"
         "docker-compose.yml -f docker-compose.monitoring.yml"
     )
     local found_services=false
@@ -98,8 +110,11 @@ show_running_services() {
     if [[ -n "$individual_containers" ]]; then
         found_services=true
         echo "$individual_containers"
+    fi
     if [[ "$found_services" == "false" ]]; then
         info "No N8N-R8 services are currently running"
+    fi
+}
 # Stop Docker Compose configurations
 stop_compose_configurations() {
     local remove_volumes="$1"
@@ -112,6 +127,7 @@ stop_compose_configurations() {
         "docker-compose.yml -f docker-compose.traefik.yml:Traefik Proxy"
         "docker-compose.yml -f docker-compose.nginx.yml:Nginx Proxy"
         "docker-compose.yml:Basic N8N"
+    )
     for config_info in "${compose_configs[@]}"; do
         IFS=':' read -r compose_files description <<< "$config_info"
         
@@ -125,8 +141,10 @@ stop_compose_configurations() {
             fi
             if [[ "$remove_orphans" == "true" ]]; then
                 compose_args+=("--remove-orphans")
+            fi
             if [[ "$timeout" != "30" ]]; then
                 compose_args+=("--timeout" "$timeout")
+            fi
             # Stop services
             if [[ "$kill_containers" == "true" ]]; then
                 # Kill containers immediately
@@ -134,14 +152,21 @@ stop_compose_configurations() {
                 docker compose -f $compose_files down "${compose_args[@]}" 2>/dev/null || true
             else
                 # Graceful shutdown
+                docker compose -f $compose_files down "${compose_args[@]}" 2>/dev/null || true
+            fi
             log "$description stopped"
+        fi
+    done
+}
 # Stop individual containers
 stop_individual_containers() {
     local kill_containers="$1"
     local timeout="$2"
     log "Checking for individual N8N containers..."
     # Find all containers with n8n in the name
+    local n8n_containers
     n8n_containers=$(docker ps -q --filter "name=n8n" 2>/dev/null || true)
+    if [[ -n "$n8n_containers" ]]; then
         info "Found individual N8N containers, stopping them..."
         if [[ "$kill_containers" == "true" ]]; then
             # Kill containers immediately
@@ -149,15 +174,18 @@ stop_individual_containers() {
         else
             # Graceful shutdown
             echo "$n8n_containers" | xargs -r docker stop --time="$timeout" 2>/dev/null || true
+        fi
         # Remove containers
         echo "$n8n_containers" | xargs -r docker rm -f 2>/dev/null || true
         log "Individual containers stopped and removed"
+    fi
 # Stop monitoring processes
 stop_monitoring_processes() {
     log "Stopping monitoring processes..."
     local monitoring_pids=(
         "$PROJECT_DIR/monitoring/logs/monitor.pid"
         "$PROJECT_DIR/monitoring/logs/disk-monitor.pid"
+    )
     for pid_file in "${monitoring_pids[@]}"; do
         if [[ -f "$pid_file" ]]; then
             local pid
@@ -180,8 +208,12 @@ stop_monitoring_processes() {
                     kill -KILL "$pid" 2>/dev/null || true
                 fi
                 log "$process_name stopped"
+            fi
             # Remove PID file
             rm -f "$pid_file"
+        fi
+    done
+}
 # Clean up temporary files
 cleanup_temporary_files() {
     log "Cleaning up temporary files..."
@@ -191,6 +223,7 @@ cleanup_temporary_files() {
     # Clean up any lock files
     find "$PROJECT_DIR" -name "*.lock" -delete 2>/dev/null || true
     log "Temporary files cleaned up"
+}
 # Remove Docker networks
 remove_networks() {
     log "Removing Docker networks..."
@@ -199,6 +232,9 @@ remove_networks() {
         if docker network ls --format "{{.Name}}" | grep -q "^$network$"; then
             info "Removing network: $network"
             docker network rm "$network" 2>/dev/null || warning "Failed to remove network: $network"
+        fi
+    done
+}
 # Show stop summary
 show_stop_summary() {
     local start_time="$1"
@@ -217,30 +253,38 @@ show_stop_summary() {
         echo "$remaining_containers" | sed 's/^/    /'
     else
         log "All N8N-R8 services have been stopped successfully"
+    fi
     # Show remaining resources
     local remaining_networks
     remaining_networks=$(docker network ls --format "{{.Name}}" | grep -E "n8n" || true)
     if [[ -n "$remaining_networks" ]]; then
         info "Remaining networks:"
         echo "$remaining_networks" | sed 's/^/    /'
+    fi
     local remaining_volumes
     remaining_volumes=$(docker volume ls --format "{{.Name}}" | grep -E "n8n" || true)
     if [[ -n "$remaining_volumes" ]]; then
         info "Remaining volumes:"
         echo "$remaining_volumes" | sed 's/^/    /'
+    fi
+}
 # Confirmation prompt
 confirm_stop() {
     local force="$1"
     local configurations=("$@")
     if [[ "$force" == "true" ]]; then
         return 0
+    fi
     warning "This will stop all N8N-R8 services and configurations:"
     for config in "${configurations[@]:1}"; do
         echo "  - $config"
+    done
     read -p "Are you sure you want to continue? (y/N): " -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         log "Stop operation cancelled by user"
         exit 0
+    fi
+}
 # Main function
 main() {
     local force=false
@@ -257,23 +301,38 @@ main() {
             -f|--force)
                 force=true
                 shift
+                ;;
             -v|--volumes)
                 remove_volumes=true
+                shift
+                ;;
             -r|--remove-orphans)
                 remove_orphans=true
+                shift
+                ;;
             --timeout)
                 timeout="$2"
                 shift 2
+                ;;
             --kill)
                 kill_containers=true
+                shift
+                ;;
             -*)
                 error "Unknown option: $1"
+                usage
+                ;;
             *)
                 error "Unknown argument: $1"
+                usage
+                ;;
         esac
+    done
     # Validate timeout
     if ! [[ "$timeout" =~ ^[0-9]+$ ]] || [[ "$timeout" -lt 1 ]]; then
         error "Invalid timeout: $timeout. Must be a positive integer."
+        exit 1
+    fi
     local start_time
     start_time=$(date +%s)
     log "N8N-R8 Stop All Services"
@@ -283,13 +342,18 @@ main() {
     # Check Docker availability
     if ! check_docker; then
         warning "Docker is not available, but will attempt to stop monitoring processes"
+    fi
     # Detect running configurations
     local configurations
     mapfile -t configurations < <(detect_running_configurations)
     if [[ ${#configurations[@]} -eq 0 ]]; then
+        info "No N8N-R8 services are currently running"
         # Check for monitoring processes even if no Docker services
         stop_monitoring_processes
         cleanup_temporary_files
+        log "All N8N-R8 services have been stopped"
+        exit 0
+    fi
     # Show current services
     show_running_services || true
     # Confirm stop operation
@@ -306,10 +370,13 @@ main() {
     # Remove networks if requested
     if [[ "$remove_volumes" == "true" ]]; then
         remove_networks
+    fi
     # Show summary
     show_stop_summary "$start_time"
     log "All N8N-R8 services have been stopped"
     if [[ "$kill_containers" == "true" ]]; then
         warning "Containers were forcefully killed - data may not have been properly saved"
+    fi
+}
 # Run main function
 main "$@"

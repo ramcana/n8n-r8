@@ -27,10 +27,13 @@ log() {
 }
 error() {
     echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
+}
 warning() {
     echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
+}
 info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
+}
 # Usage function
 usage() {
     echo "Usage: $0 [OPTIONS] <backup_name>"
@@ -94,10 +97,12 @@ validate_backup() {
         warning "✗ PostgreSQL backup not found"
     if [[ -f "$backup_path/redis_data.tar.gz" ]]; then
         has_redis=true
-        info "✓ Redis backup found"
-        warning "✗ Redis backup not found"
+        info "Redis backup found"
+        warning "Redis backup not found"
     if [[ "$has_data" == false && "$has_db" == false && "$has_redis" == false ]]; then
         error "No valid backup data found"
+        exit 1
+    fi
 # Stop services
 stop_services() {
     log "Stopping N8N services..."
@@ -122,8 +127,11 @@ start_services() {
     warning "Services may not be fully ready yet"
 # Restore N8N data
 restore_n8n_data() {
+    local backup_path="$1"
     if [[ ! -f "$backup_path/n8n_data.tar.gz" ]]; then
         warning "N8N data backup not found, skipping..."
+        return 0
+    fi
     log "Restoring N8N data..."
     # Backup current data if it exists
     if [[ -d "$PROJECT_DIR/data/n8n" ]]; then
@@ -135,29 +143,46 @@ restore_n8n_data() {
     log "N8N data restored successfully"
 # Restore PostgreSQL database
 restore_postgres() {
+    local backup_path="$1"
     if [[ ! -f "$backup_path/postgres_dump.sql.gz" ]]; then
         warning "PostgreSQL backup not found, skipping..."
+        return 0
+    fi
     log "Restoring PostgreSQL database..."
     # Start only postgres service for restore
     docker compose -f "$PROJECT_DIR/docker-compose.yml" up -d postgres
     # Wait for postgres to be ready
     log "Waiting for PostgreSQL to be ready..."
+    local max_attempts=30
+    local attempt=0
+    while [[ $attempt -lt $max_attempts ]]; do
         if docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
             break
+        fi
         sleep 2
+        ((attempt++))
+    done
     if [[ $attempt -eq $max_attempts ]]; then
         error "PostgreSQL failed to start"
+        return 1
+    fi
     # Restore database
     if gunzip -c "$backup_path/postgres_dump.sql.gz" | \
         docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres psql \
             -U "$POSTGRES_USER" \
             -d "$POSTGRES_DB"; then
         log "PostgreSQL database restored successfully"
+    else
         error "PostgreSQL restore failed"
+        return 1
+    fi
 # Restore Redis data
 restore_redis() {
+    local backup_path="$1"
     if [[ ! -f "$backup_path/redis_data.tar.gz" ]]; then
         warning "Redis backup not found, skipping..."
+        return 0
+    fi
     log "Restoring Redis data..."
     if [[ -d "$PROJECT_DIR/data/redis" ]]; then
         log "Backing up current Redis data..."
@@ -166,8 +191,11 @@ restore_redis() {
     log "Redis data restored successfully"
 # Restore configuration
 restore_config() {
+    local backup_path="$1"
     if [[ ! -d "$backup_path/config" ]]; then
         warning "Configuration backup not found, skipping..."
+        return 0
+    fi
     log "Restoring configuration files..."
     # Backup current config files
     local backup_suffix
@@ -178,30 +206,36 @@ restore_config() {
     if [[ -f "$backup_path/config/.env" ]]; then
         cp "$backup_path/config/.env" "$PROJECT_DIR/"
         log "Environment file restored"
+    fi
     if [[ -f "$backup_path/config/docker-compose.yml" ]]; then
         cp "$backup_path/config/docker-compose.yml" "$PROJECT_DIR/"
         log "Docker Compose file restored"
+    fi
     # Restore nginx config if exists
     if [[ -d "$backup_path/config/nginx" ]]; then
         [[ -d "$PROJECT_DIR/nginx" ]] && mv "$PROJECT_DIR/nginx" "$PROJECT_DIR/nginx$backup_suffix"
         cp -r "$backup_path/config/nginx" "$PROJECT_DIR/"
         log "Nginx configuration restored"
+    fi
     # Restore traefik config if exists
     if [[ -d "$backup_path/config/traefik" ]]; then
         [[ -d "$PROJECT_DIR/traefik" ]] && mv "$PROJECT_DIR/traefik" "$PROJECT_DIR/traefik$backup_suffix"
         cp -r "$backup_path/config/traefik" "$PROJECT_DIR/"
         log "Traefik configuration restored"
+    fi
     log "Configuration restored successfully"
 # Confirmation prompt
 confirm_restore() {
     local backup_name="$1"
     if [[ "${FORCE_RESTORE:-false}" == "true" ]]; then
         return 0
+    fi
     warning "This will restore the backup '$backup_name' and may overwrite existing data!"
     read -p "Are you sure you want to continue? (yes/no): " -r
     if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
         log "Restore cancelled by user"
         exit 0
+    fi
 # Main restore function
 main() {
     local backup_name=""
@@ -226,14 +260,22 @@ main() {
                 db_only=true
             --config-only)
                 config_only=true
+                shift
+                ;;
             -*)
                 error "Unknown option: $1"
+                usage
+                ;;
             *)
                 backup_name="$1"
+                shift
+                ;;
         esac
     if [[ -z "$backup_name" ]]; then
         error "Backup name is required"
         usage
+        exit 1
+    fi
     local backup_path="$BACKUP_DIR/$backup_name"
     log "Starting N8N restore process..."
     log "Backup: $backup_name"
@@ -247,7 +289,13 @@ main() {
         restore_redis "$backup_path"
     elif [[ "$db_only" == "true" ]]; then
         restore_postgres "$backup_path"
+    else
         # Full restore
+        restore_n8n_data "$backup_path"
+        restore_postgres "$backup_path"
+        restore_redis "$backup_path"
+        restore_config "$backup_path"
+    fi
     start_services
     log "Restore completed successfully!"
     log "Please verify that all services are working correctly."

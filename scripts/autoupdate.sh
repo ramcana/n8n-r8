@@ -193,6 +193,8 @@ perform_update() {
         wait_time=$((wait_time + 10))
     done
     error_exit "Services did not become healthy within $max_wait seconds"
+}
+
 # Rollback to previous backup
 rollback() {
     log "WARN" "Rolling back to previous backup..."

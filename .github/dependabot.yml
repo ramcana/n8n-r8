@@ -1,0 +1,66 @@
+version: 2
+updates:
+  # Enable version updates for npm (Node.js dependencies)
+  - package-ecosystem: "npm"
+    directory: "/nodes"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "ramcana"
+    assignees:
+      - "ramcana"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "security"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      # Ignore major version updates for core dependencies
+      - dependency-name: "n8n-*"
+        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"  
+      time: "10:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ramcana"
+    assignees:
+      - "ramcana"
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+    labels:
+      - "docker"
+      - "security"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "11:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ramcana"
+    assignees:
+      - "ramcana"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "github-actions"
+      - "security"

@@ -14,13 +14,14 @@ CONFIG_FILE="$MONITORING_DIR/config/monitor.conf"
 
 # Default configuration
 DEFAULT_CHECK_INTERVAL=30
-DEFAULT_DISK_THRESHOLD=85
-DEFAULT_MEMORY_THRESHOLD=90
-DEFAULT_LOG_RETENTION_DAYS=7
-DEFAULT_ALERT_COOLDOWN=300  # 5 minutes
+DEFAULT_DISK_THRESHOLD=80
+DEFAULT_MEMORY_THRESHOLD=85
+DEFAULT_LOG_RETENTION_DAYS=14
+DEFAULT_ALERT_COOLDOWN=600  # 10 minutes
 
-# Load configuration
+# Load configuration if available
 if [[ -f "$CONFIG_FILE" ]]; then
+    # shellcheck source=/dev/null
     source "$CONFIG_FILE"
 fi
 
@@ -42,7 +43,6 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Logging functions
@@ -50,7 +50,8 @@ log() {
     local level="$1"
     shift
     local message="$*"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo "[$timestamp] [$level] $message" | tee -a "$LOG_DIR/monitor.log"
 }
 
@@ -116,6 +117,7 @@ init_monitoring() {
     
     # Load environment variables
     if [[ -f "$PROJECT_DIR/.env" ]]; then
+        # shellcheck source=/dev/null
         source "$PROJECT_DIR/.env"
     fi
     
@@ -145,7 +147,8 @@ check_service_health() {
     fi
     
     # Check container health status
-    local health_status=$(docker inspect --format='{{.State.Health.Status}}' "$container_name" 2>/dev/null || echo "no-healthcheck")
+    local health_status
+    health_status=$(docker inspect --format='{{.State.Health.Status}}' "$container_name" 2>/dev/null || echo "no-healthcheck")
     
     case "$health_status" in
         "healthy")
@@ -162,7 +165,8 @@ check_service_health() {
             ;;
         "no-healthcheck")
             # For services without health checks, check if container is running
-            local container_status=$(docker inspect --format='{{.State.Status}}' "$container_name" 2>/dev/null || echo "not-found")
+            local container_status
+            container_status=$(docker inspect --format='{{.State.Status}}' "$container_name" 2>/dev/null || echo "not-found")
             if [[ "$container_status" == "running" ]]; then
                 log_debug "Service $service is running (no health check)"
                 return 0
@@ -292,8 +296,10 @@ check_disk_usage() {
     
     for dir in "${data_dirs[@]}"; do
         if [[ -d "$dir" ]]; then
-            local usage=$(du -sh "$dir" 2>/dev/null | cut -f1)
-            local disk_percent=$(df "$dir" | awk 'NR==2 {print $5}' | sed 's/%//')
+            local usage
+            local disk_percent
+            usage=$(du -sh "$dir" 2>/dev/null | cut -f1)
+            disk_percent=$(df "$dir" | awk 'NR==2 {print $5}' | sed 's/%//')
             
             if [[ $disk_percent -gt $DISK_THRESHOLD ]]; then
                 echo -e "  ⚠️  $dir: $usage (${RED}${disk_percent}%${NC})"
@@ -306,7 +312,8 @@ check_disk_usage() {
     done
     
     # Check Docker space usage
-    local docker_space=$(docker system df --format "table {{.Type}}\t{{.Size}}" | tail -n +2 | awk '{sum += $2} END {print sum}' 2>/dev/null || echo "0")
+    local docker_space
+    docker_space=$(docker system df --format "table {{.Type}}\t{{.Size}}" | tail -n +2 | awk '{sum += $2} END {print sum}' 2>/dev/null || echo "0")
     echo -e "  📦 Docker system: ${docker_space}MB"
     
     if [[ "$disk_issues" == "true" ]]; then
@@ -322,7 +329,8 @@ check_disk_usage() {
 check_memory_usage() {
     log_info "Checking memory usage..."
     
-    local memory_percent=$(free | awk 'NR==2{printf "%.0f", $3*100/$2}')
+    local memory_percent
+    memory_percent=$(free | awk 'NR==2{printf "%.0f", $3*100/$2}')
     
     echo -e "${BLUE}Memory Usage:${NC}"
     
@@ -354,10 +362,12 @@ send_email_alert() {
     
     # Check cooldown
     local last_alert_file="$LOG_DIR/.last_alert"
-    local current_time=$(date +%s)
+    local current_time
+    current_time=$(date +%s)
     
     if [[ -f "$last_alert_file" ]]; then
-        local last_alert_time=$(cat "$last_alert_file")
+        local last_alert_time
+        last_alert_time=$(cat "$last_alert_file")
         local time_diff=$((current_time - last_alert_time))
         
         if [[ $time_diff -lt $ALERT_COOLDOWN ]]; then
@@ -369,7 +379,8 @@ send_email_alert() {
     log_info "Sending email alert: $subject"
     
     # Create email content
-    local email_content="Subject: [N8N-R8] $subject
+    local email_content
+    email_content="Subject: [N8N-R8] $subject
 From: $EMAIL_FROM
 To: $EMAIL_TO
 
@@ -454,7 +465,8 @@ run_health_check() {
         done
         
         # Send alert email
-        local alert_body="Critical issues detected in N8N-R8:
+        local alert_body
+        alert_body="Critical issues detected in N8N-R8:
 
 $(printf '%s\n' "${issues[@]}")
 
@@ -512,7 +524,7 @@ cleanup_logs() {
     log_debug "Cleaning up old logs..."
     
     # Remove logs older than retention period
-    find "$LOG_DIR" -name "*.log" -type f -mtime +$LOG_RETENTION_DAYS -delete 2>/dev/null || true
+    find "$LOG_DIR" -name "*.log" -type f -mtime +"$LOG_RETENTION_DAYS" -delete 2>/dev/null || true
     
     # Rotate large log files
     for log_file in "$LOG_DIR"/*.log; do
@@ -570,7 +582,6 @@ show_logs() {
 main() {
     local command=""
     local daemon_mode=false
-    local verbose=false
     local disable_email=false
     
     # Parse arguments
@@ -580,7 +591,6 @@ main() {
                 usage
                 ;;
             -v|--verbose)
-                verbose=true
                 DEBUG=true
                 shift
                 ;;

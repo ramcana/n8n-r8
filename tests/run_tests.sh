@@ -10,9 +10,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Source test helpers
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/helpers/test_helpers.sh"
 
 # Test configuration
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/test_config.sh" 2>/dev/null || true
 
 # Default settings
@@ -222,7 +224,8 @@ run_test_category() {
 
 run_single_test_file() {
     local test_file="$1"
-    local test_name=$(basename "$test_file")
+    local test_name
+    test_name=$(basename "$test_file")
     
     log_info "Executing test file: $test_name"
     
@@ -230,7 +233,8 @@ run_single_test_file() {
     chmod +x "$test_file"
     
     # Run test file and capture results
-    local temp_output=$(mktemp)
+    local temp_output
+    temp_output=$(mktemp)
     local exit_code=0
     
     if timeout "$TEST_TIMEOUT" "$test_file" > "$temp_output" 2>&1; then

@@ -12,6 +12,7 @@ BACKUP_DIR="$PROJECT_DIR/backups"
 
 # Load environment variables
 if [[ -f "$PROJECT_DIR/.env" ]]; then
+    # shellcheck source=/dev/null
     source "$PROJECT_DIR/.env"
 else
     echo "Error: .env file not found in $PROJECT_DIR"
@@ -73,9 +74,12 @@ list_backups() {
     
     for backup in "$BACKUP_DIR"/n8n_backup_*; do
         if [[ -d "$backup" ]]; then
-            local backup_name=$(basename "$backup")
-            local backup_date=$(echo "$backup_name" | sed 's/n8n_backup_//' | sed 's/_/ /')
-            local backup_size=$(du -sh "$backup" | awk '{print $1}')
+            local backup_name
+            local backup_date
+            local backup_size
+            backup_name=$(basename "$backup")
+            backup_date=$(echo "$backup_name" | sed 's/n8n_backup_//' | sed 's/_/ /')
+            backup_size=$(du -sh "$backup" | awk '{print $1}')
             
             echo "  📦 $backup_name"
             echo "     Date: $backup_date"
@@ -270,7 +274,8 @@ restore_config() {
     log "Restoring configuration files..."
     
     # Backup current config files
-    local backup_suffix=".backup.$(date +%s)"
+    local backup_suffix
+    backup_suffix=".backup.$(date +%s)"
     
     [[ -f "$PROJECT_DIR/.env" ]] && cp "$PROJECT_DIR/.env" "$PROJECT_DIR/.env$backup_suffix"
     [[ -f "$PROJECT_DIR/docker-compose.yml" ]] && cp "$PROJECT_DIR/docker-compose.yml" "$PROJECT_DIR/docker-compose.yml$backup_suffix"

@@ -47,7 +47,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
-          find . -name "*.sh" -type f | xargs shellcheck
+          find . -name "*.sh" -type f -not -path "*/node_modules/*" | xargs shellcheck
 
       - name: Validate Docker Compose files
         run: |

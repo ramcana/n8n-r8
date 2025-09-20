@@ -69,16 +69,14 @@ backup_n8n_data() {
 # Backup PostgreSQL database
 backup_postgres() {
     log "Backing up PostgreSQL database..."
-    docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres pg_dump \
+    if docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres pg_dump \
         -U "$POSTGRES_USER" \
         -d "$POSTGRES_DB" \
         --no-owner \
         --no-privileges \
         --clean \
         --if-exists \
-        > "$BACKUP_PATH/postgres_dump.sql"
-    
-    if [[ $? -eq 0 ]]; then
+        > "$BACKUP_PATH/postgres_dump.sql"; then
         log "PostgreSQL backup completed"
         gzip "$BACKUP_PATH/postgres_dump.sql"
     else

@@ -245,10 +245,14 @@ run_single_test_file() {
     fi
     
     # Parse test results from output
-    local tests_run=$(grep -o "Tests Run: *[0-9]*" "$temp_output" | grep -o "[0-9]*" || echo "0")
-    local tests_passed=$(grep -o "Passed: *[0-9]*" "$temp_output" | grep -o "[0-9]*" || echo "0")
-    local tests_failed=$(grep -o "Failed: *[0-9]*" "$temp_output" | grep -o "[0-9]*" || echo "0")
-    local tests_skipped=$(grep -o "Skipped: *[0-9]*" "$temp_output" | grep -o "[0-9]*" || echo "0")
+    local tests_run
+    local tests_passed
+    local tests_failed
+    local tests_skipped
+    tests_run=$(grep -o "Tests Run: *[0-9]*" "$temp_output" | grep -o "[0-9]*" || echo "0")
+    tests_passed=$(grep -o "Passed: *[0-9]*" "$temp_output" | grep -o "[0-9]*" || echo "0")
+    tests_failed=$(grep -o "Failed: *[0-9]*" "$temp_output" | grep -o "[0-9]*" || echo "0")
+    tests_skipped=$(grep -o "Skipped: *[0-9]*" "$temp_output" | grep -o "[0-9]*" || echo "0")
     
     # Update global counters
     TOTAL_TESTS_RUN=$((TOTAL_TESTS_RUN + tests_run))

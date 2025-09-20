@@ -223,12 +223,10 @@ restore_postgres() {
     fi
     
     # Restore database
-    gunzip -c "$backup_path/postgres_dump.sql.gz" | \
+    if gunzip -c "$backup_path/postgres_dump.sql.gz" | \
         docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres psql \
             -U "$POSTGRES_USER" \
-            -d "$POSTGRES_DB"
-    
-    if [[ $? -eq 0 ]]; then
+            -d "$POSTGRES_DB"; then
         log "PostgreSQL database restored successfully"
     else
         error "PostgreSQL restore failed"

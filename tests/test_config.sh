@@ -76,10 +76,13 @@ declare -A INTEGRATION_TEST_CONFIG=(
     ["timeout"]="600"
     ["parallel"]="false"
     ["setup_delay"]="10"
+)
+
 declare -A VALIDATION_TEST_CONFIG=(
     ["timeout"]="300"
     ["cleanup"]="false"
     ["skip_network"]="false"
+)
 # Function to get test-specific configuration
 get_test_config() {
     local category="$1"
@@ -92,10 +95,13 @@ get_test_config() {
             ;;
         "integration")
             echo "${INTEGRATION_TEST_CONFIG[$key]:-$default}"
+            ;;
         "validation")
             echo "${VALIDATION_TEST_CONFIG[$key]:-$default}"
+            ;;
         *)
             echo "$default"
+            ;;
     esac
 }
 # Export configuration for use in test scripts

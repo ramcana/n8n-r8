@@ -51,17 +51,29 @@ check_prerequisites() {
     # Check if docker-compose is available
     if ! command -v docker >/dev/null 2>&1; then
         error "Docker Compose is not installed or not in PATH."
+        exit 1
+    fi
+    
     # Check if .env file exists
     if [[ ! -f "$PROJECT_DIR/.env" ]]; then
         error ".env file not found. Please create it first."
+    fi
+    
     log "Prerequisites check passed"
+}
+
 # Validate environment variables
 validate_environment() {
     log "Validating environment configuration..."
     # Load environment variables
     if [[ -f "$PROJECT_DIR/.env" ]]; then
-    # shellcheck source=/dev/null
+        # shellcheck source=/dev/null
         source "$PROJECT_DIR/.env"
+    else
+        error ".env file not found"
+        exit 1
+    fi
+    
     # Check required variables
     local required_vars=(
         "POSTGRES_DB"
@@ -84,22 +96,33 @@ validate_environment() {
         done
         echo ""
         echo "Please update your .env file with the missing variables."
+        exit 1
+    fi
+    
     # Validate encryption key length
     if [[ ${#N8N_ENCRYPTION_KEY} -lt 32 ]]; then
         error "N8N_ENCRYPTION_KEY must be at least 32 characters long"
+        exit 1
+    fi
     # Check for default passwords
     local default_passwords=(
         "changeme123!"
         "password"
         "admin"
         "123456"
+    )
+    
     for default_pass in "${default_passwords[@]}"; do
         if [[ "${POSTGRES_PASSWORD:-}" == "$default_pass" ]] || \
            [[ "${REDIS_PASSWORD:-}" == "$default_pass" ]] || \
            [[ "${N8N_BASIC_AUTH_PASSWORD:-}" == "$default_pass" ]]; then
             warning "Default password detected. Please change default passwords in .env file."
             break
+        fi
+    done
+    
     log "Environment validation passed"
+}
 # Create necessary directories
 create_directories() {
     log "Creating necessary directories..."
@@ -226,19 +249,28 @@ show_service_status() {
                 ;;
             "unhealthy")
                 echo -e "  ❌ $service: ${RED}unhealthy${NC}"
+                ;;
             "starting")
                 echo -e "  🔄 $service: ${YELLOW}starting${NC}"
+                ;;
             "no-healthcheck")
                 echo -e "  ⚪ $service: ${BLUE}no healthcheck${NC}"
+                ;;
             *)
                 echo -e "  ❓ $service: ${YELLOW}unknown${NC}"
+                ;;
         esac
+    done
+    
     # Test N8N endpoint
     log "Testing N8N endpoint..."
     sleep 3
     if curl -s -f --max-time 10 "http://localhost:$port/healthz" >/dev/null 2>&1; then
         echo -e "  ✅ N8N endpoint: ${GREEN}responding${NC}"
+    else
         echo -e "  ⚠️  N8N endpoint: ${YELLOW}not ready yet (may take a moment)${NC}"
+    fi
+}
 # Show access information
 show_access_info() {
     log "Access Information:"
@@ -294,25 +326,43 @@ main() {
         case $1 in
             -h|--help)
                 usage
+                ;;
             -d|--detach)
                 detach=true
                 shift
+                ;;
             --build)
                 build=true
+                shift
+                ;;
             --force-recreate)
                 force_recreate=true
+                shift
+                ;;
             --no-deps)
                 no_deps=true
+                shift
+                ;;
             --port)
                 custom_port="$2"
                 shift 2
+                ;;
             -*)
                 error "Unknown option: $1"
+                ;;
+            *)
                 error "Unknown argument: $1"
+                ;;
+        esac
+    done
+    
     # Validate port if specified
+    if [[ -n "$custom_port" ]]; then
         if ! [[ "$custom_port" =~ ^[0-9]+$ ]] || [[ "$custom_port" -lt 1024 ]] || [[ "$custom_port" -gt 65535 ]]; then
             error "Invalid port: $custom_port. Please use a port between 1024 and 65535."
             exit 1
+        fi
+    fi
     local port="${custom_port:-5678}"
     log "Starting N8N in direct access mode..."
     log "Port: $port, Detached: $detach"
@@ -323,10 +373,14 @@ main() {
     check_port_conflicts "$port"
     check_running_services
     start_services "$detach" "$build" "$force_recreate" "$no_deps" "$custom_port"
-        # Perform health checks in background mode
-        perform_health_checks "$port" || true
+    
+    # Perform health checks in background mode
+    perform_health_checks "$port" || true
+    
     if [[ "$detach" == "false" ]]; then
         log "Services stopped"
+    fi
+}
 # Change to project directory
 cd "$PROJECT_DIR"
 # Run main function

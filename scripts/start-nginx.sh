@@ -157,6 +157,10 @@ show_service_status() {
             "unhealthy")
                 echo -e "  ❌ $service: ${RED}unhealthy${NC}"
             "starting")
+                ;;
+            "no-healthcheck")
+                ;;
+            "no-healthcheck")
                 echo -e "  🔄 $service: ${YELLOW}starting${NC}"
             "no-healthcheck")
                 echo -e "  ⚪ $service: ${BLUE}no healthcheck${NC}"

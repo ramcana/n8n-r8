@@ -1,9 +1,9 @@
 import {
-	IHookFunctions,
-	IWebhookFunctions,
 	IDataObject,
+	IHookFunctions,
 	INodeType,
 	INodeTypeDescription,
+	IWebhookFunctions,
 	IWebhookResponseData,
 } from 'n8n-workflow';
 
@@ -135,23 +135,27 @@ export class HttpTrigger implements INodeType {
 		],
 	};
 
-	// @ts-ignore (because of request)
 	webhookMethods = {
 		default: {
 			async checkExists(this: IHookFunctions): Promise<boolean> {
 				const webhookUrl = this.getNodeWebhookUrl('default');
 				const webhookData = this.getWorkflowStaticData('node');
+
 				return webhookData.webhookId === webhookUrl;
 			},
 			async create(this: IHookFunctions): Promise<boolean> {
 				const webhookUrl = this.getNodeWebhookUrl('default');
 				const webhookData = this.getWorkflowStaticData('node');
+
 				webhookData.webhookId = webhookUrl;
+
 				return true;
 			},
 			async delete(this: IHookFunctions): Promise<boolean> {
 				const webhookData = this.getWorkflowStaticData('node');
+
 				delete webhookData.webhookId;
+
 				return true;
 			},
 		},
@@ -169,6 +173,7 @@ export class HttpTrigger implements INodeType {
 		const queryData = this.getQueryData();
 
 		let body: any = {};
+
 		if (req.body) {
 			if (options.rawBody === true) {
 				body = req.body;

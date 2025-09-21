@@ -60,8 +60,9 @@ send_disk_alert() {
     local status="$1"
     local details="$2"
     # Check if monitoring script exists and use its alert function
-    if [[ -f "$MONITORING_DIR/monitor.sh" ]]; then
-        source "$MONITORING_DIR/monitor.sh"
+    if [[ -f "$MONITORING_DIR/scripts/monitor.sh" ]]; then
+        # shellcheck disable=SC1091
+        source "$MONITORING_DIR/scripts/monitor.sh"
         local subject="Disk Space Alert - $status"
         local body
         body="Disk space alert for N8N-R8:

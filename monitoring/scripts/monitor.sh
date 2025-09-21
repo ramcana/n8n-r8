@@ -65,6 +65,19 @@ log_error() {
     log "ERROR" "$@"
 }
 
+# Send email alert
+send_email_alert() {
+    local subject="$1"
+    local body="$2"
+    
+    if [[ "$ENABLE_EMAIL_ALERTS" == "true" ]] && [[ -n "$EMAIL_TO" ]]; then
+        log_info "Sending email alert to $EMAIL_TO"
+        echo "$body" | mail -s "$subject" -r "$EMAIL_FROM" "$EMAIL_TO" 2>/dev/null || log_warn "Failed to send email alert"
+    else
+        log_info "Email alerts disabled or no recipient configured"
+    fi
+}
+
 # Usage function
 usage() {
     echo "Usage: $0 [COMMAND] [OPTIONS]"

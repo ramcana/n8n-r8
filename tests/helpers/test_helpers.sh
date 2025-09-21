@@ -12,8 +12,6 @@ NC='\033[0m'
 log_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
-}
-
 run_tests() {
     # Setup
     if declare -f setup > /dev/null; then

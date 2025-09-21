@@ -20,8 +20,6 @@ log() {
     local message="$*"
     echo -e "[$(date +'%Y-%m-%d %H:%M:%S')] [${level}] ${message}"
 }
-}
-
 check_root() {
     if [[ $EUID -eq 0 ]]; then
         log "WARN" "Running as root is not recommended"
@@ -48,7 +46,6 @@ check_prerequisites() {
         log "ERROR" "Docker Compose is not available"
         exit 1
     fi
-}
     # Check if in project directory
     if [[ ! -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
         log "ERROR" "Not in N8N-R8 project directory"
@@ -311,4 +308,3 @@ main() {
     fi
 # Run main function
 main "$@"
-}

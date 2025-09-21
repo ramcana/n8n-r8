@@ -20,13 +20,9 @@ log() {
 error() {
     echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
 }
-}
-
 info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
 }
-}
-
 check_prerequisites() {
     local node_version
     node_version=$(node --version | sed 's/v//')

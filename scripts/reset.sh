@@ -4,8 +4,8 @@
 # This script resets the N8N installation by removing all data and containers
 set -euo pipefail
 # Configuration
-SCRIPT_DIR=""$(cd "$(dirname "${\1}")"" && pwd)"
-PROJECT_DIR="$(dirname "$\1")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'

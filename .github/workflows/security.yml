@@ -92,16 +92,12 @@ jobs:
           fetch-depth: 0
 
       - name: TruffleHog OSS
-        if: github.event.before != github.sha
         uses: trufflesecurity/trufflehog@main
         continue-on-error: true
+        if: github.event.before != github.sha
         with:
           path: ./
           extra_args: --only-verified --no-update
-
-      - name: Skip TruffleHog if no new commits
-        if: github.event.before == github.sha
-        run: echo "Skipping TruffleHog scan: base and head commits are identical."
 
   dependency-scan:
     name: Dependency Scan
@@ -139,17 +135,16 @@ jobs:
 
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
-        if: "${{ secrets.SNYK_TOKEN != '' }}"
+        if: secrets.SNYK_TOKEN != ''
         continue-on-error: true
         env:
-          SNYK_TOKEN: "${{ secrets.SNYK_TOKEN }}"
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high --file=nodes/package.json
       
       - name: Snyk scan skipped
-        if: "${{ secrets.SNYK_TOKEN == '' }}"
+        if: secrets.SNYK_TOKEN == ''
         run: echo "Skipping Snyk scan - no token provided"
-        run: echo "Snyk scan skipped - SNYK_TOKEN not configured"
 
   configuration-scan:
     name: Configuration Security Scan

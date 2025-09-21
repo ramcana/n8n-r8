@@ -79,7 +79,7 @@ check_prerequisites() {
 load_environment() {
     log "Loading environment variables..."
     if [[ -f "$PROJECT_DIR/.env" ]]; then
-        # shellcheck source=/dev/null
+        # shellcheck disable=SC1091
         source "$PROJECT_DIR/.env"
         log "Environment variables loaded"
     else
@@ -206,6 +206,7 @@ show_service_status() {
 show_access_info() {
     log "Access Information:"
     # Load environment variables for display
+    # shellcheck disable=SC1091
     source "$PROJECT_DIR/.env" 2>/dev/null || true
     local nginx_port=${NGINX_PORT:-80}
     local nginx_ssl_port=${NGINX_SSL_PORT:-443}

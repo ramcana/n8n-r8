@@ -72,7 +72,7 @@ validate_environment() {
     log "Validating environment configuration..."
     # Load environment variables
     if [[ -f "$PROJECT_DIR/.env" ]]; then
-        # shellcheck source=/dev/null
+        # shellcheck disable=SC1091
         source "$PROJECT_DIR/.env"
     else
         error ".env file not found"
@@ -294,6 +294,7 @@ show_access_info() {
     local port="$1"
     log "Access Information:"
     # Load environment variables for display
+    # shellcheck disable=SC1091
     source "$PROJECT_DIR/.env" 2>/dev/null || true
     echo "  🌐 N8N Web Interface:"
     echo "    URL: http://localhost:$port"

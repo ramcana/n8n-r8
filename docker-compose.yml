@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   n8n:
-    image: n8nio/n8n:1.63.4
+    image: n8nio/n8n:1.111.1
     container_name: n8n
     restart: unless-stopped
     # Conditional port exposure - only expose when not using reverse proxy
@@ -77,7 +77,7 @@ services:
     #   - "traefik.docker.network=n8n-network"
 
   postgres:
-    image: postgres:15.8-alpine3.20
+    image: postgres:16-alpine
     container_name: n8n-postgres
     restart: unless-stopped
     labels:

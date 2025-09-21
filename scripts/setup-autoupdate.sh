@@ -296,6 +296,7 @@ main() {
             exit 1
         fi
         exit 0
+    fi
     # Check prerequisites
     check_root
     check_prerequisites
@@ -308,3 +309,4 @@ main() {
 }
 # Run main function
 main "$@"
+}

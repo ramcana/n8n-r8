@@ -195,6 +195,7 @@ docker_cleanup() {
     # Remove volumes
     docker volume ls --filter "name=$prefix" --format "{{.Name}}" | xargs -r docker volume rm
 wait_for_service() {
+    local service="$1"
     local timeout="${2:-60}"
     local interval="${3:-2}"
     log_debug "Waiting for service '$service' to be ready (timeout: ${timeout}s)"
@@ -204,12 +205,12 @@ wait_for_service() {
             log_debug "Service '$service' is ready"
             return 0
         fi
-}
-        
         sleep "$interval"
         elapsed=$((elapsed + interval))
+    done
     log_error "Service '$service' failed to start within ${timeout}s"
     return 1
+}
 wait_for_url() {
     log_debug "Waiting for URL '$url' to be accessible (timeout: ${timeout}s)"
         if curl -s -f "$url" > /dev/null 2>&1; then
@@ -278,4 +279,3 @@ export -f docker_cleanup wait_for_service wait_for_url
 export -f create_temp_dir cleanup_temp_dir
 export -f backup_config restore_config
 export -f measure_execution_time assert_execution_time_under
-}

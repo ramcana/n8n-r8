@@ -51,8 +51,6 @@ install_dependencies() {
     npm install
     log "Dependencies installed successfully"
 }
-}
-
 # Clean build artifacts
 clean_build() {
     log "Cleaning build artifacts..."
@@ -66,8 +64,6 @@ clean_build() {
     npm cache clean --force 2>/dev/null || true
     log "Build artifacts cleaned"
 }
-}
-
 # Run linting
 run_lint() {
     local fix_issues="$1"
@@ -80,16 +76,12 @@ run_lint() {
         log "Linting completed"
     fi
 }
-}
-
 # Format code
 format_code() {
     log "Formatting code with Prettier..."
     npm run format
     log "Code formatting completed"
 }
-}
-
 # Run tests
 run_tests() {
     local coverage="$1"
@@ -102,8 +94,6 @@ run_tests() {
         log "Tests completed"
     fi
 }
-}
-
 # Build nodes
 build_nodes() {
     local production="$1"
@@ -147,18 +137,6 @@ watch_build() {
     # Start TypeScript compiler in watch mode
     npm run compile:watch
 }
-}
-
-}
-
-# Watch for changes
-watch_build() {
-    log "Starting watch mode..."
-    # Start TypeScript compiler in watch mode
-    npm run compile:watch
-}
-}
-
 # Validate all
 validate_all() {
     local skip_tests="$1"
@@ -170,10 +148,12 @@ validate_all() {
         if ! run_lint false; then
             validation_failed=true
         fi
+    fi
     # Check formatting
     if ! npm run format:check; then
         error "Code formatting check failed"
         validation_failed=true
+    fi
     # Run tests
     if [[ "$skip_tests" != "true" ]]; then
         if ! run_tests false; then
@@ -189,6 +169,7 @@ validate_all() {
         return 1
     fi
     log "All validation checks passed"
+}
 # Package nodes for distribution
 package_nodes() {
     log "Packaging nodes for distribution..."
@@ -202,6 +183,7 @@ package_nodes() {
     # Move to project root for easy access
     mv "$package_file" "$PROJECT_DIR/"
     info "Package moved to project root: $PROJECT_DIR/$package_file"
+}
 # Show build info
 show_build_info() {
     log "Build Information:"
@@ -221,6 +203,7 @@ show_build_info() {
     else
         echo "  Build Status: Not built"
     fi
+}
 # Main function
 main() {
     local command="build"
@@ -308,35 +291,6 @@ main() {
             usage
             ;;
     esac
-# Run main function
-main() {
-    # Parse command line arguments
-    if [[ $# -eq 0 ]]; then
-        usage
-        exit 1
-    fi
 }
-
-    command="$1"
-    shift
-
-    # Execute command
-    case "$command" in
-        build)
-            build_nodes
-            ;;
-        clean)
-            clean_build
-            ;;
-        info)
-            show_build_info
-            ;;
-        *)
-            error "Unknown command: $command"
-            usage
-            ;;
-    esac
-}
-
 # Execute main
 main "$@"

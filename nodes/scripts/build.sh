@@ -131,6 +131,7 @@ build_nodes() {
         info "Built files:"
         find dist -name "*.js" | sed 's/^/  /'
     fi
+}
 # Watch for changes
 watch_build() {
     log "Starting watch mode..."

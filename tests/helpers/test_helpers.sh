@@ -194,6 +194,7 @@ docker_cleanup() {
     docker network ls --filter "name=$prefix" --format "{{.Name}}" | xargs -r docker network rm
     # Remove volumes
     docker volume ls --filter "name=$prefix" --format "{{.Name}}" | xargs -r docker volume rm
+}
 wait_for_service() {
     local service="$1"
     local timeout="${2:-60}"
@@ -212,21 +213,36 @@ wait_for_service() {
     return 1
 }
 wait_for_url() {
+    local url="$1"
+    local timeout="${2:-30}"
+    local interval="${3:-2}"
     log_debug "Waiting for URL '$url' to be accessible (timeout: ${timeout}s)"
+    local elapsed=0
+    while [[ $elapsed -lt $timeout ]]; do
         if curl -s -f "$url" > /dev/null 2>&1; then
             log_debug "URL '$url' is accessible"
+            return 0
+        fi
+        sleep "$interval"
+        elapsed=$((elapsed + interval))
+    done
     log_error "URL '$url' not accessible within ${timeout}s"
+    return 1
+}
 # File and directory helpers
 create_temp_dir() {
     local prefix="${1:-n8n_test_}"
     local temp_dir
     temp_dir=$(mktemp -d -t "${prefix}XXXXXX")
     echo "$temp_dir"
+}
 cleanup_temp_dir() {
     local temp_dir="$1"
     if [[ -n "$temp_dir" && -d "$temp_dir" ]]; then
         rm -rf "$temp_dir"
         log_debug "Cleaned up temporary directory: $temp_dir"
+    fi
+}
 # Configuration helpers
 backup_config() {
     local config_file="$1"
@@ -234,11 +250,17 @@ backup_config() {
     if [[ -f "$config_file" ]]; then
         cp "$config_file" "${config_file}${backup_suffix}"
         log_debug "Backed up config: $config_file"
+    fi
+}
 restore_config() {
+    local config_file="$1"
+    local backup_suffix="${2:-.test_backup}"
     local backup_file="${config_file}${backup_suffix}"
     if [[ -f "$backup_file" ]]; then
         mv "$backup_file" "$config_file"
         log_debug "Restored config: $config_file"
+    fi
+}
 # Performance testing helpers
 measure_execution_time() {
     local start_time
@@ -251,6 +273,7 @@ measure_execution_time() {
     duration=$(echo "$end_time - $start_time" | bc)
     echo "$duration"
     return $exit_code
+}
 assert_execution_time_under() {
     local command="$1"
     local max_time="$2"

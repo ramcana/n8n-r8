@@ -65,7 +65,6 @@ interactive_config() {
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         enable_autoupdate="false"
     fi
-}
 
     if [[ "$enable_autoupdate" == "false" ]]; then
         log "INFO" "Autoupdate disabled. You can enable it later with: make autoupdate-enable"
@@ -151,6 +150,7 @@ interactive_config() {
     esac
     # Show summary
     show_summary "$update_method"
+}
 # Update .env file
 update_env_file() {
     local enable_autoupdate="$1"
@@ -186,18 +186,21 @@ update_env_file() {
         echo "WATCHTOWER_ROLLING_RESTART=true"
         echo "WATCHTOWER_SCHEDULE=\"0 0 2 * * *\""
     } >> "$CONFIG_FILE"
+}
 # Setup Watchtower
 setup_watchtower() {
     log "INFO" "Setting up Watchtower for automated updates..."
     "$SCRIPT_DIR/autoupdate.sh" enable
     log "INFO" "Watchtower setup complete"
     log "INFO" "To start with Watchtower: make start-with-autoupdate"
+}
 # Setup scheduled updates
 setup_scheduled() {
     log "INFO" "Setting up scheduled updates..."
     # Install cron job
     "$SCRIPT_DIR/autoupdate.sh" schedule
     log "INFO" "Scheduled updates setup complete"
+}
 # Show configuration summary
 show_summary() {
     local update_method="$1"
@@ -233,6 +236,7 @@ show_summary() {
     echo "  make autoupdate-enable    # Enable autoupdate"
     echo "  make autoupdate-disable   # Disable autoupdate"
     echo -e "${BLUE}Documentation:${NC} docs/autoupdate.md"
+}
 # Non-interactive setup
 non_interactive_setup() {
     log "INFO" "Setting up autoupdate with default configuration..."
@@ -241,6 +245,7 @@ non_interactive_setup() {
     log "INFO" "Default autoupdate configuration applied"
     log "INFO" "Use 'make autoupdate-status' to check configuration"
     log "INFO" "Use './scripts/setup-autoupdate.sh --interactive' for custom setup"
+}
 # Show usage
 usage() {
     cat << EOF
@@ -257,6 +262,7 @@ EXAMPLES:
     $0 --default        # Default setup
     $0 --status         # Show status
 EOF
+}
 # Main function
 main() {
     local interactive=true
@@ -309,4 +315,3 @@ main() {
 }
 # Run main function
 main "$@"
-}

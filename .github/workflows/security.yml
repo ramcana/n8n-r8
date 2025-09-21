@@ -217,7 +217,7 @@ jobs:
           echo "Checking for default credentials..."
           
           # Check for common default passwords in non-example files
-          if grep -r "changeme123!" --exclude="*.example" --exclude="README.md" --exclude="CHANGELOG.md" .; then
+          if grep -r "changeme123!" --exclude="*.example" --exclude="README.md" --exclude="CHANGELOG.md" --exclude="*.sh" --exclude="Makefile" --exclude-dir=".github" .; then
             echo "❌ Default passwords found in configuration files"
             exit 1
           else

@@ -65,26 +65,23 @@ usage() {
     echo "Usage: $0 [OPTIONS] [COMMAND]"
     echo ""
     echo "Commands:"
-    echo "  check           Run one-time health check"
-    echo "  monitor         Start continuous monitoring"
-    echo "  status          Show current service status"
-    echo "  disk            Check disk usage"
-    echo "  logs            Show monitoring logs"
-    echo "  test-alert      Test email alert system"
+    echo "  check                    # One-time health check"
+    echo "  monitor                  # Start monitoring service"
     echo "Options:"
-    echo "  -h, --help      Show this help message"
-    echo "  -v, --verbose   Enable verbose output"
-    echo "  -d, --daemon    Run as daemon (background)"
-    echo "  -i, --interval  Check interval in seconds (default: $DEFAULT_CHECK_INTERVAL)"
-    echo "  --no-email      Disable email alerts for this run"
+    echo "  -d, --daemon            Run in background"
+    echo "  -i, --interval SEC      Set monitoring interval (default: 60)"
+    echo "  -h, --help              Show this help message"
+    echo ""
     echo "Examples:"
     echo "  $0 check                    # One-time health check"
     echo "  $0 monitor -d               # Start monitoring in background"
     echo "  $0 monitor -i 60            # Monitor with 60-second intervals"
     exit 1
+}
 # Initialize monitoring
 init_monitoring() {
     log_info "Initializing monitoring system..."
+}
     
     # Create log directory
     mkdir -p "$LOG_DIR"
@@ -96,45 +93,62 @@ init_monitoring() {
     if [[ -f "$PROJECT_DIR/.env" ]]; then
         # shellcheck source=/dev/null
         source "$PROJECT_DIR/.env"
+    fi
     log_info "Monitoring system initialized"
+}
 # Check if Docker is running
 check_docker() {
     if ! docker info >/dev/null 2>&1; then
         log_error "Docker is not running"
         return 1
+    fi
     return 0
+}
 # Check service health
 check_service_health() {
     local service="$1"
     local container_name="$2"
+}
+    
+    log_debug "Checking health for service: $service"
     log_debug "Checking health for service: $service"
     # Check if container is running
     if ! docker ps --format "table {{.Names}}" | grep -q "^$container_name$"; then
         log_error "Service $service ($container_name) is not running"
+    fi
     # Check container health status
     local health_status
     health_status=$(docker inspect --format='{{.State.Health.Status}}' "$container_name" 2>/dev/null || echo "no-healthcheck")
     case "$health_status" in
-        "healthy")
-            log_debug "Service $service is healthy"
-            return 0
+        "healthy");;
+            log_debug "Service $service is healthy";;
+            return 0;;
             ;;
-        "unhealthy")
-            log_error "Service $service is unhealthy"
-            return 1
-        "starting")
-            log_warn "Service $service is starting"
-            return 2
-        "no-healthcheck")
+        "unhealthy");;
+            log_error "Service $service is unhealthy";;
+            return 1;;
+            ;;
+        "starting");;
+            log_warn "Service $service is starting";;
+            return 2;;
+            ;;
+        "no-healthcheck");;
             # For services without health checks, check if container is running
-            local container_status
-            container_status=$(docker inspect --format='{{.State.Status}}' "$container_name" 2>/dev/null || echo "not-found")
-            if [[ "$container_status" == "running" ]]; then
-                log_debug "Service $service is running (no health check)"
-                return 0
-            else
-                log_error "Service $service is not running"
-                return 1
+            local container_status;;
+            container_status=$(docker inspect --format='{{.State.Status}}' "$container_name" 2>/dev/null || echo "not-found");;
+            if [[ "$container_status" == "running" ]]; then;;
+                log_debug "Service $service is running (no health check)";;
+                return 0;;
+            else;;
+                log_error "Service $service is not running";;
+                return 1;;
+            fi;;
+            ;;
+        *);;
+            log_warn "Unknown container health status: $health_status";;
+            ;;
+    esac
+}
             fi
         *)
             log_warn "Service $service has unknown health status: $health_status"
@@ -156,6 +170,7 @@ check_all_services() {
     local service_status=()
     for service_info in "${services[@]}"; do
         IFS=':' read -r service container <<< "$service_info"
+}
         
         if check_service_health "$service" "$container"; then
             service_status+=("✅ $service: healthy")
@@ -213,6 +228,7 @@ check_disk_usage() {
             local disk_percent
             usage=$(du -sh "$dir" 2>/dev/null | cut -f1)
             disk_percent=$(df "$dir" | awk 'NR==2 {print $5}' | sed 's/%//')
+}
             
             if [[ $disk_percent -gt $DISK_THRESHOLD ]]; then
                 echo -e "  ⚠️  $dir: $usage (${RED}${disk_percent}%${NC})"
@@ -370,38 +386,53 @@ If you receive this email, the alert system is working correctly."
 show_logs() {
     local log_type="$1"
     case "$log_type" in
-        "monitor"|"")
-            tail -f "$LOG_DIR/monitor.log"
-        "alerts")
-            tail -f "$LOG_DIR/alerts.log"
-        "health")
-            tail -f "$LOG_DIR/health.log"
-            echo "Available log types: monitor, alerts, health"
+        "monitor"|"");;
+            tail -f "$LOG_DIR/monitor.log";;
+            ;;
+        "alerts");;
+            tail -f "$LOG_DIR/alerts.log";;
+            ;;
+        "health");;
+            tail -f "$LOG_DIR/health.log";;
+            ;;
+        *);;
+            echo "Available log types: monitor, alerts, health";;
+            ;;
 # Main function
-main() {
-    local command=""
-    local daemon_mode=false
-    local disable_email=false
+main() {;;
+    local command="";;
+    local daemon_mode=false;;
+    local disable_email=false;;
     # Parse arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            -h|--help)
-                usage
+    while [[ $# -gt 0 ]]; do;;
+        case $1 in;;
+            -h|--help);;
+                usage;;
                 ;;
-            -v|--verbose)
-                DEBUG=true
-                shift
-            -d|--daemon)
-                daemon_mode=true
-            -i|--interval)
-                CHECK_INTERVAL="$2"
-                shift 2
-            --no-email)
-                disable_email=true
-            check|monitor|status|disk|logs|test-alert)
-                command="$1"
-            *)
-                echo "Unknown option: $1"
+            -v|--verbose);;
+                DEBUG=true;;
+                shift;;
+                ;;
+            -d|--daemon);;
+                daemon_mode=true;;
+                shift;;
+                ;;
+            -i|--interval);;
+                CHECK_INTERVAL="$2";;
+                shift 2;;
+                ;;
+            --no-email);;
+                disable_email=true;;
+                shift;;
+                ;;
+            check|monitor|status|disk|logs|test-alert);;
+                command="$1";;
+                shift;;
+                ;;
+            *);;
+                echo "Unknown option: $1";;
+                shift;;
+                ;;
         esac
     # Disable email if requested
     if [[ "$disable_email" == "true" ]]; then
@@ -410,21 +441,58 @@ main() {
     init_monitoring
     # Execute command
     case "$command" in
-        "check")
-            run_health_check
-        "monitor")
-            start_monitoring "$daemon_mode"
-        "status")
-            check_all_services
-        "disk")
-            check_disk_usage
-        "logs")
-            show_logs "${2:-}"
-        "test-alert")
-            test_email_alert
-        "")
-            # Default to one-time check
-            echo "Unknown command: $command"
-            usage
+        "check");;
+            run_health_check;;
+            ;;
+        "monitor");;
+            start_monitoring "$daemon_mode";;
+            ;;
+        "status");;
+            check_all_services;;
+            ;;
+        "disk");;
+            check_disk_usage;;
+            ;;
+        "logs");;
+            show_logs "${2:-}";;
+            ;;
+        "test-alert");;
+            test_email_alert;;
+            ;;
+        "");;
+            usage;;
+            ;;
+        *);;
+            echo "Unknown command: $command";;
+            usage;;
+            ;;
 # Run main function
-main "$@"
+main "$@";;
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+}

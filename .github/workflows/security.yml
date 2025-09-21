@@ -138,16 +138,17 @@ jobs:
           npm audit --audit-level=moderate || echo "npm audit completed with findings"
 
       - name: Run Snyk to check for vulnerabilities
-        if: ${{ secrets.SNYK_TOKEN != '' }}
         uses: snyk/actions/node@master
+        if: "${{ secrets.SNYK_TOKEN != '' }}"
         continue-on-error: true
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_TOKEN: "${{ secrets.SNYK_TOKEN }}"
         with:
           args: --severity-threshold=high --file=nodes/package.json
       
       - name: Snyk scan skipped
-        if: ${{ secrets.SNYK_TOKEN == '' }}
+        if: "${{ secrets.SNYK_TOKEN == '' }}"
+        run: echo "Skipping Snyk scan - no token provided"
         run: echo "Snyk scan skipped - SNYK_TOKEN not configured"
 
   configuration-scan:

@@ -20,10 +20,19 @@ log() {
 }
 error() {
     echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
+}
+}
+
 warning() {
     echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
+}
+}
+
 info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
+}
+}
+
 # Usage function
 usage() {
     echo "Usage: $0 [OPTIONS] [COMMAND] [SERVICE]"
@@ -66,6 +75,7 @@ check_root() {
 # Get service file mapping
 get_service_file() {
     local service="$1"
+}
     
     case "$service" in
         "basic")
@@ -73,14 +83,18 @@ get_service_file() {
             ;;
         "nginx")
             echo "n8n-nginx.service"
+            ;;
         "traefik")
             echo "n8n-traefik.service"
+            ;;
         "monitoring")
             echo "n8n-monitoring.service"
+            ;;
         *)
             error "Unknown service: $service"
             echo "Available services: basic, nginx, traefik, monitoring"
             exit 1
+;;
     esac
 # List available services
 list_services() {
@@ -140,6 +154,8 @@ install_service() {
     # Check if source file exists
     if [[ ! -f "$source_file" ]]; then
         error "Service template not found: $source_file"
+        return 1
+    fi
     # Check if target already exists
     if [[ -f "$target_file" ]] && [[ "$force" != "true" ]]; then
         warning "Service file already exists: $target_file"
@@ -147,10 +163,13 @@ install_service() {
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             info "Installation cancelled"
             return 0
+        fi
+    fi
     # Stop service if running
     if systemctl is-active --quiet "$service_file" 2>/dev/null; then
         warning "Stopping running service: $service_file"
         systemctl stop "$service_file"
+    fi
     # Install and customize service file
     customize_service_file "$source_file" "$target_file" "$user" "$project_path"
     # Reload systemd
@@ -167,16 +186,26 @@ uninstall_service() {
     if [[ ! -f "$target_file" ]]; then
         warning "Service not installed: $service_file"
         return 0
+    fi
+}
+    
     # Confirmation
     if [[ "$force" != "true" ]]; then
         warning "This will remove the systemd service: $service_file"
         read -p "Continue? (y/N): " -r
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             info "Uninstallation cancelled"
+            return 1
+        fi
+    fi
+    
     # Stop and disable service
-        log "Stopping service: $service_file"
+    log "Stopping service: $service_file"
     if systemctl is-enabled --quiet "$service_file" 2>/dev/null; then
         log "Disabling service: $service_file"
         systemctl disable "$service_file"
+    fi
+    
     # Remove service file
     rm -f "$target_file"
     log "Service uninstalled successfully: $service_file"
@@ -188,27 +217,42 @@ manage_service() {
     if [[ ! -f "$SYSTEM_SYSTEMD_DIR/$service_file" ]]; then
         error "Service not installed: $service_file"
         echo "Install it first with: sudo $0 install $service"
+        return 1
+    fi
+}
+
     case "$action" in
         "enable"|"disable")
             systemctl "$action" "$service_file"
             log "Service $service_file ${action}d"
+            ;;
         "start"|"stop"|"restart")
+            systemctl "$action" "$service_file"
             log "Service $service_file ${action}ed"
+            ;;
         "status")
             systemctl status "$service_file" --no-pager
+            ;;
+        *)
             error "Unknown action: $action"
+            ;;
+    esac
+}
+
 # Show service logs
 show_logs() {
     shift
     local extra_args=("$@")
     log "Showing logs for service: $service_file"
     journalctl -u "$service_file" "${extra_args[@]}"
+}
 # Handle multiple services
 handle_multiple_services() {
     local services="$2"
     shift 2
     if [[ "$services" == "all" ]]; then
         services="basic nginx traefik monitoring"
+    fi
     for service in $services; do
         case "$action" in
             "install"|"uninstall")
@@ -220,10 +264,14 @@ handle_multiple_services() {
                 ;;
             "logs")
                 show_logs "$service" "${extra_args[@]}"
+                ;;
             *)
                 manage_service "$action" "$service"
+                ;;
         esac
         echo ""
+    done
+}
 # Main function
 main() {
     local command=""
@@ -237,39 +285,85 @@ main() {
         case $1 in
             -h|--help)
                 usage
+                ;;
             -f|--force)
                 force=true
                 shift
+                ;;
             -u|--user)
                 user="$2"
                 shift 2
+                ;;
             -p|--path)
                 project_path="$2"
+                shift 2
+                ;;
             install|uninstall|enable|disable|start|stop|restart|status|logs|list)
                 command="$1"
+                shift
+                ;;
             basic|nginx|traefik|monitoring|all)
                 service="$1"
+                shift
+                ;;
+            *)
                 extra_args+=("$1")
+                shift
+                ;;
+        esac
+    done
     # Validate command
     if [[ -z "$command" ]]; then
         error "No command specified"
         usage
+    fi
+}
+    
     # Handle list command
     if [[ "$command" == "list" ]]; then
         list_services
         exit 0
+    fi
+    
     # Validate service
     if [[ -z "$service" ]]; then
         error "No service specified"
+    fi
     # Check root for system operations
     case "$command" in
         install|uninstall|enable|disable|start|stop|restart)
             check_root
+            ;;
+        logs|status|list)
+            :  # No special handling needed
+            ;;
+        *)
+            error "Unknown command: $command"
+            usage
+            exit 1
+            ;;
+    esac
+
+    handle_multiple_services "$command" "$service" "$user" "$project_path" "$force"
+}
     log "N8N-R8 Systemd Service Manager"
     log "Command: $command, Service: $service, User: $user"
     # Execute command
+    case "$command" in
         "install")
             handle_multiple_services "$command" "$service" "$user" "$project_path" "$force"
+            ;;
+        "uninstall")
+            handle_multiple_services "$command" "$service" "$force"
+            ;;
+        "logs")
+            handle_multiple_services "$command" "$service" "${extra_args[@]}"
+            ;;
+        *)
+            manage_service "$command" "$service"
+            ;;
+    esac
+}
         "uninstall")
             handle_multiple_services "$command" "$service" "$force"
         "logs")

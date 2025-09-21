@@ -4,9 +4,9 @@
 # This script ensures custom nodes are built before starting N8N
 set -euo pipefail
 # Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-NODES_DIR="$PROJECT_DIR/nodes"
+SCRIPT_DIR="$(cd "$(dirname "${1}")" && pwd)"
+PROJECT_DIR="$(dirname "${1}")"
+NODES_DIR="${1}/nodes"
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -15,16 +15,16 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 # Logging functions
 log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] ${NC}$1"
 }
 error() {
-    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
+    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: ${NC}$1" >&2
 }
 warning() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: ${NC}$1"
 }
 info() {
-    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO: ${NC}$1"
 }
 # Usage function
 usage() {
@@ -44,22 +44,25 @@ usage() {
     echo "  $0 --nginx -d       # Start with Nginx proxy in detached mode"
     echo "  $0 --build-only     # Only build custom nodes"
     exit 1
+}
 # Check if custom nodes directory exists
 check_custom_nodes() {
-    if [[ ! -d "$NODES_DIR" ]]; then
-        warning "Custom nodes directory not found: $NODES_DIR"
+    if [[ ! -d "${1}" ]]; then
+        warning "Custom nodes directory not found: ${1}"
         return 1
     fi
     
-    if [[ ! -f "$NODES_DIR/package.json" ]]; then
+    if [[ ! -f "${1}/package.json" ]]; then
         warning "No package.json found in custom nodes directory"
         return 1
     fi
     return 0
+}
+
 # Build custom nodes
 build_custom_nodes() {
     log "Building custom N8N nodes..."
-    cd "$NODES_DIR"
+    cd "${1}"
     # Check if build script exists
     if [[ -x "scripts/build.sh" ]]; then
         ./scripts/build.sh build
@@ -72,43 +75,46 @@ build_custom_nodes() {
             error "No build script or package.json found"
             return 1
         fi
+    fi
     # Verify build output
     if [[ ! -d "dist" ]] || [[ -z "$(ls -A dist 2>/dev/null)" ]]; then
         error "Build failed - no output in dist directory"
         return 1
     fi
     local node_files
-    node_files=$(find dist -name "*.node.js" 2>/dev/null | wc -l)
+    node_files="$(find dist -name "*.node.js" 2>/dev/null | wc -l)"
     local credential_files
-    credential_files=$(find dist -name "*.credential.js" 2>/dev/null | wc -l)
+    credential_files="$(find dist -name "*.credential.js" 2>/dev/null | wc -l)"
     log "✅ Custom nodes built successfully"
-    info "Built $node_files node(s) and $credential_files credential(s)"
+    info "Built ${node_files} node(s) and ${credential_files} credential(s)"
+    return 0
+}
+
 # Start N8N services
 start_n8n() {
     local detach="$1"
     local proxy="$2"
-    cd "$PROJECT_DIR"
-    log "Starting N8N services..."
+    cd "${PROJECT_DIR}"
     local compose_args="-f docker-compose.yml"
-    case "$proxy" in
+    case "${2}" in
         "nginx")
-            compose_args="$compose_args -f docker-compose.nginx.yml"
+            compose_args="${compose_args} -f docker-compose.nginx.yml"
             info "Using Nginx proxy configuration"
             ;;
         "traefik")
-            compose_args="$compose_args -f docker-compose.traefik.yml"
+            compose_args="${compose_args} -f docker-compose.traefik.yml"
             info "Using Traefik proxy configuration"
             ;;
         "")
             info "Using direct access configuration"
             ;;
         *)
-            error "Unknown proxy type: $proxy"
+            error "Unknown proxy type: ${2}"
             return 1
             ;;
     esac
-    if [[ "$detach" == "true" ]]; then
-        docker compose $compose_args up -d
+    if [[ "${1}" == "true" ]]; then
+        docker compose "${compose_args}" up -d
         log "✅ N8N started in detached mode"
         
         # Wait for services to be ready
@@ -117,7 +123,7 @@ start_n8n() {
         # Show access information
         echo ""
         log "🌐 Access Information:"
-        case "$proxy" in
+        case "${2}" in
             "nginx")
                 echo "  N8N Web Interface: http://localhost"
                 ;;
@@ -129,10 +135,15 @@ start_n8n() {
                 echo "  N8N Web Interface: http://localhost:5678"
                 ;;
         esac
-        echo "  Custom Nodes: Mounted from $NODES_DIR/dist"
+        if [[ -d "${NODES_DIR}/dist" ]]; then
+            echo "  Custom Nodes: Mounted from ${NODES_DIR}/dist"
+        fi
     else
-        docker compose $compose_args up
+        docker compose "${compose_args}" up
     fi
+    return 0
+}
+
 # Main function
 main() {
     local detach=false
@@ -144,9 +155,11 @@ main() {
         case $1 in
             -h|--help)
                 usage
+                ;;
             -d|--detach)
                 detach=true
                 shift
+                ;;
             --nginx)
                 proxy="nginx"
                 shift
@@ -176,11 +189,11 @@ main() {
     log "N8N Custom Nodes Startup"
     log "========================"
     # Check if custom nodes exist
-    if check_custom_nodes; then
-        info "Custom nodes directory found: $NODES_DIR"
+    if check_custom_nodes "${NODES_DIR}"; then
+        info "Custom nodes directory found: ${NODES_DIR}"
         # Build custom nodes unless skipped
-        if [[ "$skip_build" != "true" ]]; then
-            if ! build_custom_nodes; then
+        if [[ "${skip_build}" != "true" ]]; then
+            if ! build_custom_nodes "${NODES_DIR}"; then
                 error "Failed to build custom nodes"
                 exit 1
             fi
@@ -188,21 +201,23 @@ main() {
             info "Skipping custom nodes build"
         fi
         # Exit if build-only mode
-        if [[ "$build_only" == "true" ]]; then
+        if [[ "${build_only}" == "true" ]]; then
             log "Build completed. Exiting (build-only mode)"
             exit 0
         fi
     else
         warning "No custom nodes found - starting N8N without custom nodes"
-        if [[ "$build_only" == "true" ]]; then
+        if [[ "${build_only}" == "true" ]]; then
             error "No custom nodes to build"
             exit 1
         fi
     fi
     # Start N8N
-    if ! start_n8n "$detach" "$proxy"; then
+    if ! start_n8n "${detach}" "${proxy}"; then
         error "Failed to start N8N"
         exit 1
     fi
+}
+
 # Run main function
 main "$@"

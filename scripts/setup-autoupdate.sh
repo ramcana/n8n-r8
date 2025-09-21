@@ -1,48 +1,54 @@
 #!/bin/bash
 
 # N8N-R8 Autoupdate Setup Script
-# Quick setup wizard for configuring autoupdate functionality
 set -euo pipefail
+
 # Script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-# Configuration
-CONFIG_FILE="${PROJECT_ROOT}/.env"
-# Colors for output
+
+# Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
+
 # Logging function
 log() {
     local level="$1"
     shift
     local message="$*"
-    echo -e "[${level}] ${message}"
+    echo -e "[$(date +'%Y-%m-%d %H:%M:%S')] [${level}] ${message}"
 }
-# Check if running as root
+}
+
 check_root() {
     if [[ $EUID -eq 0 ]]; then
-        log "WARN" "Running as root is not recommended for this script"
+        log "WARN" "Running as root is not recommended"
         read -p "Continue anyway? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             exit 1
         fi
     fi
+}
 # Check prerequisites
 check_prerequisites() {
     log "INFO" "Checking prerequisites..."
+}
     
     # Check Docker
     if ! command -v docker >/dev/null 2>&1; then
         log "ERROR" "Docker is not installed or not in PATH"
         exit 1
+    fi
+    
     # Check Docker Compose
     if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
         log "ERROR" "Docker Compose is not available"
         exit 1
     fi
+}
     # Check if in project directory
     if [[ ! -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
         log "ERROR" "Not in N8N-R8 project directory"
@@ -61,6 +67,9 @@ interactive_config() {
     local enable_autoupdate="true"
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         enable_autoupdate="false"
+    fi
+}
+
     if [[ "$enable_autoupdate" == "false" ]]; then
         log "INFO" "Autoupdate disabled. You can enable it later with: make autoupdate-enable"
         return 0
@@ -89,8 +98,10 @@ interactive_config() {
         read -p "Rollback on update failure? (Y/n): " -n 1 -r
         if [[ $REPLY =~ ^[Nn]$ ]]; then
             rollback_on_failure="false"
+        fi
     else
         rollback_on_failure="false"
+    fi
     # Notification settings
     echo -e "${YELLOW}4. Notification Settings${NC}"
     read -p "Enable notifications? (Y/n): " -n 1 -r
@@ -107,6 +118,7 @@ interactive_config() {
         
         echo "Notification email (optional, press Enter to skip):"
         read -r notification_email
+    fi
     # Schedule settings
     local update_schedule="0 2 * * *"  # Default: daily at 2 AM
     if [[ "$update_method" == "scheduled" ]]; then
@@ -138,6 +150,7 @@ interactive_config() {
             ;;
         "manual")
             log "INFO" "Manual update mode configured"
+            ;;
             ;;
     esac
     # Show summary
@@ -262,6 +275,7 @@ main() {
             -i|--interactive)
                 interactive=true
                 shift
+                ;;
             -d|--default)
                 interactive=false
                 shift
@@ -297,3 +311,4 @@ main() {
     fi
 # Run main function
 main "$@"
+}

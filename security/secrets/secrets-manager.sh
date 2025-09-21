@@ -1,40 +1,49 @@
 #!/bin/bash
 
 # N8N-R8 Secrets Manager
-# Comprehensive secrets management with HashiCorp Vault integration
 set -euo pipefail
-# Script configuration
+
+# Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-SECURITY_DIR="$(dirname "$SCRIPT_DIR")"
-# Source configuration
-    # shellcheck source=/dev/null
-source "$SECURITY_DIR/security-config.env" 2>/dev/null || true
-# Default configuration
-VAULT_ENABLED=${VAULT_ENABLED:-false}
-VAULT_URL=${VAULT_URL:-"http://localhost:8200"}
-VAULT_TOKEN_FILE=${VAULT_TOKEN_FILE:-"$SECURITY_DIR/secrets/.vault_token"}
-VAULT_SECRETS_PATH=${VAULT_SECRETS_PATH:-"secret/n8n-r8"}
-ENCRYPTION_KEY_FILE=${ENCRYPTION_KEY_FILE:-"$SECURITY_DIR/secrets/.encryption_key"}
-ENCRYPTED_ENV_FILE=${ENCRYPTED_ENV_FILE:-"$PROJECT_ROOT/.env.encrypted"}
-# Colors for output
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SECURITY_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Configuration files
+ENCRYPTION_KEY_FILE="$SECURITY_DIR/secrets/.encryption_key"
+VAULT_TOKEN_FILE="$SECURITY_DIR/secrets/.vault_token"
+ENCRYPTED_ENV_FILE="$SECURITY_DIR/secrets/.env.encrypted"
+
+# Default settings
+VAULT_ENABLED="${VAULT_ENABLED:-false}"
+VAULT_URL="${VAULT_URL:-http://localhost:8200}"
+VAULT_SECRETS_PATH="${VAULT_SECRETS_PATH:-secret/n8n-r8}"
+
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-# Logging functions
+NC='\033[0m'
+
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
+
 log_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
+
 log_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
+
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+}
+
+handle_error() {
+    log_error "$1"
+    exit 1
 }
 # Help function
 show_help() {
@@ -71,6 +80,8 @@ EXAMPLES:
     $0 rotate                                  # Rotate all secrets
     $0 backup --backup-file secrets.backup    # Backup secrets
 EOF
+}
+
 # Check dependencies
 check_dependencies() {
     local missing_deps=()
@@ -90,6 +101,8 @@ check_dependencies() {
         log_info "Please install missing dependencies and try again"
         exit 1
     fi
+}
+
 # Generate encryption key
 generate_encryption_key() {
     local key_file="$1"
@@ -100,6 +113,8 @@ generate_encryption_key() {
     openssl rand -hex 32 > "$key_file"
     chmod 600 "$key_file"
     log_success "Encryption key generated"
+}
+
 # Initialize secrets management
 init_secrets() {
     log_info "Initializing secrets management"
@@ -117,17 +132,18 @@ init_secrets() {
     # Create initial secrets configuration
     create_secrets_config
     log_success "Secrets management initialized"
+}
+
 # Initialize Vault
 init_vault() {
     log_info "Initializing HashiCorp Vault"
     # Check if Vault is accessible
     if ! curl -s "$VAULT_URL/v1/sys/health" > /dev/null; then
-        log_warning "Vault server not accessible at $VAULT_URL"
-        log_info "Please start Vault server or update VAULT_URL"
-        return 1
+        handle_error "Vault server not accessible at $VAULT_URL"
+    fi
     # Check if Vault is initialized
     local vault_status
-    vault_status=$(curl -s "$VAULT_URL/v1/sys/init" | jq -r '.initialized')
+    vault_status=$(curl -s "$VAULT_URL/v1/sys/init" | jq -r '.initialized' 2>/dev/null) || handle_error "Failed to get Vault initialization status"
     if [[ "$vault_status" != "true" ]]; then
         log_info "Vault not initialized, initializing now..."
         
@@ -151,6 +167,7 @@ init_vault() {
         log_success "Vault initialized and unsealed"
     else
         log_info "Vault already initialized"
+    fi
     # Enable KV secrets engine if not already enabled
     if [[ -f "$VAULT_TOKEN_FILE" ]]; then
         local vault_token
@@ -160,6 +177,8 @@ init_vault() {
             -d '{"type": "kv", "options": {"version": "2"}}' > /dev/null || true
         log_success "Vault KV engine enabled"
     fi
+}
+
 # Create secrets configuration
 create_secrets_config() {
     local config_file="$SECURITY_DIR/secrets/secrets-config.json"
@@ -211,6 +230,8 @@ EOF
     sed -i "s|false|$VAULT_ENABLED|g" "$config_file"
     chmod 600 "$config_file"
     log_success "Secrets configuration created"
+}
+
 # Encrypt environment file
 encrypt_env_file() {
     local env_file="${1:-$PROJECT_ROOT/.env}"
@@ -232,6 +253,8 @@ encrypt_env_file() {
     # Set secure permissions
     chmod 600 "$encrypted_file"
     log_success "Environment file encrypted: $encrypted_file"
+}
+
 # Decrypt environment file
 decrypt_env_file() {
     local encrypted_file="${1:-$ENCRYPTED_ENV_FILE}"
@@ -249,6 +272,8 @@ decrypt_env_file() {
     openssl enc -aes-256-cbc -d -salt -in "$encrypted_file" -out "$env_file" -k "$encryption_key"
     chmod 600 "$env_file"
     log_success "Environment file decrypted: $env_file"
+}
+
 # Store secret in Vault
 store_secret() {
     local secret_name="$1"
@@ -274,6 +299,8 @@ store_secret() {
         return 1
     fi
     log_success "Secret stored in Vault: $secret_name"
+}
+
 # Retrieve secret from Vault
 retrieve_secret() {
     local secret_name="$1"
@@ -304,6 +331,8 @@ retrieve_secret() {
         return 1
     fi
     echo "$secret_value"
+}
+
 # Generate secure password
 generate_password() {
     local length="${1:-32}"
@@ -325,6 +354,8 @@ generate_password() {
             return 1
             ;;
     esac
+}
+
 # Rotate secrets
 rotate_secrets() {
     log_info "Starting secret rotation"
@@ -353,20 +384,29 @@ rotate_secrets() {
         log_success "Secret rotated: $secret_name"
     done
     log_success "Secret rotation completed"
+}
+
 # Update secret in environment file
 update_env_secret() {
+    local secret_name=$1
+    local secret_value=$2
     local env_file="${3:-$PROJECT_ROOT/.env}"
+    
     # Map secret names to environment variables
     local env_var=""
     case "$secret_name" in
         n8n_basic_auth_password)
             env_var="N8N_BASIC_AUTH_PASSWORD"
+            ;;
         postgres_password)
             env_var="POSTGRES_PASSWORD"
+            ;;
         redis_password)
             env_var="REDIS_PASSWORD"
+            ;;
         n8n_encryption_key)
             env_var="N8N_ENCRYPTION_KEY"
+            ;;
         n8n_jwt_secret)
             env_var="N8N_JWT_SECRET"
             ;;
@@ -386,9 +426,12 @@ update_env_secret() {
     else
         log_warning "Environment file not found: $env_file"
     fi
+}
+
 # Backup secrets
 backup_secrets() {
     local backup_file="${1:-$SECURITY_DIR/secrets/secrets-backup-$(date +%Y%m%d_%H%M%S).tar.gz}"
+    
     log_info "Creating secrets backup: $backup_file"
     # Create temporary directory for backup
     local temp_dir
@@ -408,14 +451,19 @@ backup_secrets() {
         cp "$ENCRYPTED_ENV_FILE" "$backup_dir/"
     fi
     # Create backup archive
-    tar -czf "$backup_file" -C "$temp_dir" secrets-backup
+    if ! tar -czf "$backup_file" -C "$temp_dir" secrets-backup; then
+        rm -rf "$temp_dir"
+        handle_error "Failed to create backup archive"
+    fi
     # Clean up temporary directory
     rm -rf "$temp_dir"
     chmod 600 "$backup_file"
     log_success "Secrets backup created: $backup_file"
+}
 # Export secrets from Vault
 export_vault_secrets() {
     local output_file="$1"
+    
     if [[ ! -f "$VAULT_TOKEN_FILE" ]]; then
         log_error "Vault token file not found"
         return 1
@@ -426,6 +474,7 @@ export_vault_secrets() {
     local secrets_list
     secrets_list=$(curl -s -X LIST "$VAULT_URL/v1/$VAULT_SECRETS_PATH/metadata" \
         -H "X-Vault-Token: $vault_token" | jq -r '.data.keys[]' 2>/dev/null || echo "")
+    
     if [[ -z "$secrets_list" ]]; then
         log_warning "No secrets found in Vault"
         echo "{}" > "$output_file"
@@ -443,6 +492,8 @@ export_vault_secrets() {
     echo "$exported_secrets" > "$output_file"
     chmod 600 "$output_file"
     log_info "Vault secrets exported to: $output_file"
+}
+
 # Show secrets status
 show_status() {
     log_info "Secrets Management Status"
@@ -484,6 +535,8 @@ show_status() {
     else
         log_warning "Secrets configuration: Missing"
     fi
+}
+
 # Clean up secrets
 clean_secrets() {
     local force="${1:-false}"
@@ -493,7 +546,10 @@ clean_secrets() {
         if [[ "$confirmation" != "y" && "$confirmation" != "Y" ]]; then
             log_info "Operation cancelled"
             return 0
+        fi
+    fi
     log_warning "Cleaning up secrets management"
+    
     # Remove secrets directory
     if [[ -d "$SECURITY_DIR/secrets" ]]; then
         rm -rf "$SECURITY_DIR/secrets"
@@ -505,6 +561,8 @@ clean_secrets() {
         log_info "Removed encrypted environment file"
     fi
     log_success "Secrets cleanup completed"
+}
+
 # Parse command line arguments
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
@@ -548,7 +606,7 @@ parse_arguments() {
                 ;;
             *)
                 log_error "Unknown option: $1"
-                usage
+                show_help
                 exit 1
                 ;;
         esac
@@ -566,10 +624,13 @@ main() {
     case "$command" in
         init)
             init_secrets
+            ;;
         encrypt)
             encrypt_env_file "${ENV_FILE:-$PROJECT_ROOT/.env}"
+            ;;
         decrypt)
             decrypt_env_file "${ENCRYPTED_ENV_FILE}" "${ENV_FILE:-$PROJECT_ROOT/.env.decrypted}"
+            ;;
         store)
             if [[ -z "${SECRET_NAME:-}" || -z "${SECRET_VALUE:-}" ]]; then
                 log_error "Secret name and value are required"
@@ -609,5 +670,7 @@ main() {
             exit 1
             ;;
     esac
+}
+
 # Run main function with all arguments
 main "$@"

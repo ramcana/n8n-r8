@@ -41,6 +41,7 @@ usage() {
 # Check prerequisites
 check_prerequisites() {
     log "Checking prerequisites..."
+}
     
     # Check if Docker is running
     if ! docker info >/dev/null 2>&1; then
@@ -107,6 +108,7 @@ setup_ssl_config() {
     if [[ -f "$PROJECT_DIR/traefik/traefik.yml" ]]; then
         # Create a backup
         cp "$PROJECT_DIR/traefik/traefik.yml" "$PROJECT_DIR/traefik/traefik.yml.backup"
+}
         
         # Update the configuration
         sed -i "s|email: .*|email: $ssl_email|g" "$PROJECT_DIR/traefik/traefik.yml"
@@ -182,12 +184,16 @@ show_service_status() {
                 ;;
             "unhealthy")
                 echo -e "  ❌ $service: ${RED}unhealthy${NC}"
+                ;;
             "starting")
                 echo -e "  🔄 $service: ${YELLOW}starting${NC}"
+                ;;
             "no-healthcheck")
                 echo -e "  ⚪ $service: ${BLUE}no healthcheck${NC}"
+                ;;
             *)
                 echo -e "  ❓ $service: ${YELLOW}unknown${NC}"
+                ;;
         esac
     done
 # Show access information
@@ -229,17 +235,23 @@ main() {
         case $1 in
             -h|--help)
                 usage
+;;
             -d|--detach)
                 detach=true
                 shift
+;;
             --build)
                 build=true
+;;
             --force-recreate)
                 force_recreate=true
+;;
             --no-deps)
                 no_deps=true
+;;
             --staging)
                 use_staging=true
+;;
             -*)
                 error "Unknown option: $1"
                 error "Unknown argument: $1"
@@ -256,3 +268,4 @@ main() {
 cd "$PROJECT_DIR"
 # Run main function
 main "$@"
+}

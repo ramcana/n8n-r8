@@ -20,47 +20,14 @@ log() {
 error() {
     echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
 }
-warning() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
 }
+
 info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
 }
-# Usage function
-usage() {
-    echo "Usage: $0 [OPTIONS] [COMMAND]"
-    echo ""
-    echo "Commands:"
-    echo "  build       Build all nodes (default)"
-    echo "  watch       Build and watch for changes"
-    echo "  clean       Clean build artifacts"
-    echo "  lint        Run ESLint"
-    echo "  format      Format code with Prettier"
-    echo "  test        Run tests"
-    echo "  validate    Run all validation checks"
-    echo "  install     Install dependencies"
-    echo "Options:"
-    echo "  -h, --help          Show this help message"
-    echo "  -v, --verbose       Enable verbose output"
-    echo "  --production        Build for production (optimized)"
-    echo "  --skip-tests        Skip running tests"
-    echo "  --skip-lint         Skip linting"
-    echo "Examples:"
-    echo "  $0                  # Build all nodes"
-    echo "  $0 watch            # Build and watch for changes"
-    echo "  $0 --production     # Production build"
-    echo "  $0 validate         # Run all checks"
-    exit 1
-# Check prerequisites
+}
+
 check_prerequisites() {
-    log "Checking prerequisites..."
-    
-    # Check if Node.js is installed
-    if ! command -v node >/dev/null 2>&1; then
-        error "Node.js is not installed. Please install Node.js 18+ first."
-        exit 1
-    fi
-    # Check Node.js version
     local node_version
     node_version=$(node --version | sed 's/v//')
     local major_version
@@ -75,6 +42,9 @@ check_prerequisites() {
         exit 1
     fi
     log "Prerequisites check passed (Node.js $node_version)"
+}
+}
+
 # Install dependencies
 install_dependencies() {
     log "Installing dependencies..."
@@ -86,6 +56,9 @@ install_dependencies() {
     # Install dependencies
     npm install
     log "Dependencies installed successfully"
+}
+}
+
 # Clean build artifacts
 clean_build() {
     log "Cleaning build artifacts..."
@@ -98,6 +71,9 @@ clean_build() {
     # Remove npm cache
     npm cache clean --force 2>/dev/null || true
     log "Build artifacts cleaned"
+}
+}
+
 # Run linting
 run_lint() {
     local fix_issues="$1"
@@ -109,11 +85,17 @@ run_lint() {
         npm run lint
         log "Linting completed"
     fi
+}
+}
+
 # Format code
 format_code() {
     log "Formatting code with Prettier..."
     npm run format
     log "Code formatting completed"
+}
+}
+
 # Run tests
 run_tests() {
     local coverage="$1"
@@ -125,6 +107,9 @@ run_tests() {
         npm run test
         log "Tests completed"
     fi
+}
+}
+
 # Build nodes
 build_nodes() {
     local production="$1"
@@ -167,6 +152,19 @@ watch_build() {
     log "Starting watch mode..."
     # Start TypeScript compiler in watch mode
     npm run compile:watch
+}
+}
+
+}
+
+# Watch for changes
+watch_build() {
+    log "Starting watch mode..."
+    # Start TypeScript compiler in watch mode
+    npm run compile:watch
+}
+}
+
 # Validate all
 validate_all() {
     local skip_tests="$1"
@@ -245,18 +243,31 @@ main() {
             -v|--verbose)
                 verbose=true
                 shift
+                ;;
             --production)
                 production=true
+                shift
+                ;;
             --skip-tests)
                 skip_tests=true
+                shift
+                ;;
             --skip-lint)
                 skip_lint=true
+                shift
+                ;;
             build|watch|clean|lint|format|test|validate|install|package|info)
                 command="$1"
+                shift
+                ;;
             -*)
                 error "Unknown option: $1"
+                exit 1
+                ;;
             *)
                 error "Unknown argument: $1"
+                exit 1
+                ;;
         esac
     done
     log "N8N Custom Nodes Build System"
@@ -304,4 +315,34 @@ main() {
             ;;
     esac
 # Run main function
+main() {
+    # Parse command line arguments
+    if [[ $# -eq 0 ]]; then
+        usage
+        exit 1
+    fi
+}
+
+    command="$1"
+    shift
+
+    # Execute command
+    case "$command" in
+        build)
+            build_nodes
+            ;;
+        clean)
+            clean_build
+            ;;
+        info)
+            show_build_info
+            ;;
+        *)
+            error "Unknown command: $command"
+            usage
+            ;;
+    esac
+}
+
+# Execute main
 main "$@"

@@ -30,6 +30,7 @@ log_warn() {
 # Test script permissions
 test_script_permissions() {
     log_test "Checking script permissions..."
+}
     
     local scripts=(
         "monitor.sh"
@@ -63,7 +64,10 @@ test_configuration_files() {
     for config in "${configs[@]}"; do
         if [[ -f "$PROJECT_DIR/$config" ]]; then
             log_pass "Configuration file $config exists"
+        else
             log_fail "Configuration file $config is missing"
+        fi
+    done
 # Test directory structure
 test_directory_structure() {
     log_test "Checking directory structure..."
@@ -75,12 +79,16 @@ test_directory_structure() {
     for dir in "${dirs[@]}"; do
         if [[ -d "$PROJECT_DIR/$dir" ]]; then
             log_pass "Directory $dir exists"
+        else
             log_fail "Directory $dir is missing"
+        fi
+    done
 # Test Docker availability
 test_docker() {
     log_test "Checking Docker availability..."
     if command -v docker >/dev/null 2>&1; then
         log_pass "Docker command is available"
+}
         
         if docker info >/dev/null 2>&1; then
             log_pass "Docker daemon is running"
@@ -120,6 +128,7 @@ test_docker_compose() {
     for compose_file in "${compose_files[@]}"; do
         if [[ -f "$PROJECT_DIR/$compose_file" ]]; then
             log_pass "Docker Compose file $compose_file exists"
+}
             
             # Test if the compose file is valid
             if docker compose -f "$PROJECT_DIR/$compose_file" config >/dev/null 2>&1; then
@@ -200,3 +209,4 @@ main() {
         return 1
 # Run main function
 main "$@"
+}

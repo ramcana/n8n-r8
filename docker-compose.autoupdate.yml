@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Watchtower for automated container updates
   watchtower:
-    image: containrrr/watchtower:latest
+    image: containrrr/watchtower:v1.7.1
     container_name: n8n-watchtower
     restart: unless-stopped
     environment:

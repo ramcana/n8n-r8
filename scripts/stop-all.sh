@@ -98,7 +98,7 @@ show_running_services() {
     local found_services=false
     for compose_cmd in "${compose_files[@]}"; do
         local services
-        services=$(docker compose -f $compose_cmd ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | tail -n +2 || true)
+        services=$(docker compose -f "$compose_cmd" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | tail -n +2 || true)
         if [[ -n "$services" ]]; then
             found_services=true
             echo "$services"
@@ -134,7 +134,7 @@ stop_compose_configurations() {
         IFS=':' read -r compose_files description <<< "$config_info"
         
         # Check if this configuration has running services
-        if docker compose -f $compose_files ps -q 2>/dev/null | grep -q .; then
+        if docker compose -f "$compose_files" ps -q 2>/dev/null | grep -q .; then
             info "Stopping $description..."
             
             local compose_args=()
@@ -150,12 +150,12 @@ stop_compose_configurations() {
             # Stop services
             if [[ "$kill_containers" == "true" ]]; then
                 # Kill containers immediately
-                docker compose -f $compose_files kill 2>/dev/null || true
-                docker compose -f $compose_files down "${compose_args[@]}" 2>/dev/null || true
+                docker compose -f "$compose_files" kill 2>/dev/null || true
+                docker compose -f "$compose_files" down "${compose_args[@]}" 2>/dev/null || true
             else
                 # Graceful shutdown
-                docker compose -f $compose_files stop --timeout "$timeout" 2>/dev/null || true
-                docker compose -f $compose_files down "${compose_args[@]}" 2>/dev/null || true
+                docker compose -f "$compose_files" stop --timeout "$timeout" 2>/dev/null || true
+                docker compose -f "$compose_files" down "${compose_args[@]}" 2>/dev/null || true
             fi
             log "$description stopped"
         fi

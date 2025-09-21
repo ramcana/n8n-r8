@@ -46,8 +46,8 @@ usage() {
 create_backup() {
     log "Creating backup before reset..."
     
-    if [[ -f ""$PROJECT_DIR"/scripts/backup.sh" ]]; then
-        bash ""$PROJECT_DIR"/scripts/backup.sh"
+    if [[ -f "$PROJECT_DIR/scripts/backup.sh" ]]; then
+        bash "$PROJECT_DIR/scripts/backup.sh"
         log "Backup completed"
     else
         warning "Backup script not found, skipping backup"
@@ -57,16 +57,17 @@ create_backup() {
 reset_containers() {
     log "Stopping and removing containers..."
     # Stop all compose services
-    docker compose -f ""$PROJECT_DIR"/docker-compose.yml" down --remove-orphans 2>/dev/null || true
+    docker compose -f "$PROJECT_DIR/docker-compose.yml" down --remove-orphans 2>/dev/null || true
     # Also try with override files
-    docker compose -f ""$PROJECT_DIR"/docker-compose.yml" -f ""$PROJECT_DIR"/docker-compose.nginx.yml" down --remove-orphans 2>/dev/null || true
-    docker compose -f ""$PROJECT_DIR"/docker-compose.yml" -f ""$PROJECT_DIR"/docker-compose.traefik.yml" down --remove-orphans 2>/dev/null || true
+    docker compose -f "$PROJECT_DIR/docker-compose.yml" -f "$PROJECT_DIR/docker-compose.nginx.yml" down --remove-orphans 2>/dev/null || true
+    docker compose -f "$PROJECT_DIR/docker-compose.yml" -f "$PROJECT_DIR/docker-compose.traefik.yml" down --remove-orphans 2>/dev/null || true
     # Remove any remaining containers with n8n in the name
     local containers
     containers="$(docker ps -aq --filter "name=n8n" 2>/dev/null || true)"
-    if [[ -n "$PROJECT_DIR" ]]; then
+    if [[ -n "$containers" ]]; then
         log "Removing remaining N8N containers..."
-        docker rm -f "$PROJECT_DIR" 2>/dev/null || true
+        # shellcheck disable=SC2086
+        docker rm -f $containers 2>/dev/null || true
     fi
     log "Containers removed"
 }
@@ -74,30 +75,30 @@ reset_containers() {
 reset_data() {
     log "Removing data directories..."
     # Remove N8N data
-    if [[ -d ""$PROJECT_DIR"/data/n8n" ]]; then
+    if [[ -d "$PROJECT_DIR/data/n8n" ]]; then
         info "Removing N8N data directory..."
-        rm -rf ""$PROJECT_DIR"/data/n8n"
+        rm -rf "$PROJECT_DIR/data/n8n"
     fi
     # Remove PostgreSQL data
-    if [[ -d ""$PROJECT_DIR"/data/postgres" ]]; then
+    if [[ -d "$PROJECT_DIR/data/postgres" ]]; then
         info "Removing PostgreSQL data directory..."
-        rm -rf ""$PROJECT_DIR"/data/postgres"
+        rm -rf "$PROJECT_DIR/data/postgres"
     fi
     # Remove Redis data
-    if [[ -d ""$PROJECT_DIR"/data/redis" ]]; then
+    if [[ -d "$PROJECT_DIR/data/redis" ]]; then
         info "Removing Redis data directory..."
-        rm -rf ""$PROJECT_DIR"/data/redis"
+        rm -rf "$PROJECT_DIR/data/redis"
     fi
     # Remove Traefik ACME data
-    if [[ -d ""$PROJECT_DIR"/data/traefik" ]]; then
+    if [[ -d "$PROJECT_DIR/data/traefik" ]]; then
         info "Removing Traefik data directory..."
-        rm -rf ""$PROJECT_DIR"/data/traefik"
+        rm -rf "$PROJECT_DIR/data/traefik"
     fi
     # Recreate empty data directories
-    mkdir -p ""$PROJECT_DIR"/data/n8n"
-    mkdir -p ""$PROJECT_DIR"/data/postgres"
-    mkdir -p ""$PROJECT_DIR"/data/redis"
-    mkdir -p ""$PROJECT_DIR"/data/traefik/acme"
+    mkdir -p "$PROJECT_DIR/data/n8n"
+    mkdir -p "$PROJECT_DIR/data/postgres"
+    mkdir -p "$PROJECT_DIR/data/redis"
+    mkdir -p "$PROJECT_DIR/data/traefik/acme"
     log "Data directories reset"
 }
 # Remove Docker networks
@@ -115,8 +116,9 @@ reset_volumes() {
     # Remove any volumes with n8n in the name
     local volumes
     volumes="$(docker volume ls -q --filter "name=n8n" 2>/dev/null || true)"
-    if [[ -n "$PROJECT_DIR" ]]; then
-        docker volume rm "$PROJECT_DIR" 2>/dev/null || true
+    if [[ -n "$volumes" ]]; then
+        # shellcheck disable=SC2086
+        docker volume rm $volumes 2>/dev/null || true
         log "N8N volumes removed"
     fi
 }
@@ -124,12 +126,12 @@ reset_volumes() {
 reset_logs() {
     log "Cleaning up log files..."
     # Clear nginx logs
-    if [[ -d ""$PROJECT_DIR"/nginx/logs" ]]; then
-        rm -rf ""$PROJECT_DIR"/nginx/logs"/*
+    if [[ -d "$PROJECT_DIR/nginx/logs" ]]; then
+        rm -rf "$PROJECT_DIR/nginx/logs"/*
     fi
     # Clear traefik logs
-    if [[ -d ""$PROJECT_DIR"/traefik/logs" ]]; then
-        rm -rf ""$PROJECT_DIR"/traefik/logs"/*
+    if [[ -d "$PROJECT_DIR/traefik/logs" ]]; then
+        rm -rf "$PROJECT_DIR/traefik/logs"/*
     fi
     log "Log files cleaned"
 }
@@ -137,16 +139,16 @@ reset_logs() {
 set_permissions() {
     log "Setting proper permissions..."
     # Set permissions for data directories
-    chmod -R 755 ""$PROJECT_DIR"/data" 2>/dev/null || true
+    chmod -R 755 "$PROJECT_DIR/data" 2>/dev/null || true
     # Set permissions for scripts
-    chmod +x ""$PROJECT_DIR"/scripts"/*.sh 2>/dev/null || true
+    chmod +x "$PROJECT_DIR/scripts"/*.sh 2>/dev/null || true
     # Set permissions for SSL directory
-    if [[ -d ""$PROJECT_DIR"/nginx/ssl" ]]; then
-        chmod 700 ""$PROJECT_DIR"/nginx/ssl"
+    if [[ -d "$PROJECT_DIR/nginx/ssl" ]]; then
+        chmod 700 "$PROJECT_DIR/nginx/ssl"
     fi
     # Set permissions for Traefik ACME directory
-    if [[ -d ""$PROJECT_DIR"/data/traefik/acme" ]]; then
-        chmod 600 ""$PROJECT_DIR"/data/traefik/acme" 2>/dev/null || true
+    if [[ -d "$PROJECT_DIR/data/traefik/acme" ]]; then
+        chmod 600 "$PROJECT_DIR/data/traefik/acme" 2>/dev/null || true
     fi
     log "Permissions set"
 }
@@ -154,19 +156,19 @@ set_permissions() {
 show_summary() {
     local reset_type="$1"
     log "Reset Summary:"
-    echo "  Reset Type: "$PROJECT_DIR""
-    echo "  Project Directory: "$PROJECT_DIR""
-    echo "  Data Directories: "$(ls -la ""$PROJECT_DIR"/data" 2>/dev/null | wc -l)" items"
-    echo "  Docker Containers: "$(docker ps -aq --filter "name=n8n" 2>/dev/null | wc -l)" remaining"
-    echo "  Docker Networks: "$(docker network ls --filter "name=n8n" -q 2>/dev/null | wc -l)" remaining"
-    echo "  Docker Volumes: "$(docker volume ls --filter "name=n8n" -q 2>/dev/null | wc -l)" remaining"
+    echo "  Reset Type: $reset_type"
+    echo "  Project Directory: $PROJECT_DIR"
+    echo "  Data Directories: $(ls -la "$PROJECT_DIR/data" 2>/dev/null | wc -l) items"
+    echo "  Docker Containers: $(docker ps -aq --filter "name=n8n" 2>/dev/null | wc -l) remaining"
+    echo "  Docker Networks: $(docker network ls --filter "name=n8n" -q 2>/dev/null | wc -l) remaining"
+    echo "  Docker Volumes: $(docker volume ls --filter "name=n8n" -q 2>/dev/null | wc -l) remaining"
 }
 # Confirmation prompt
 confirm_reset() {
     if [[ "$1" == "true" ]]; then
         return 0
     fi
-    warning "This will perform a "$1" reset of your N8N installation!"
+    warning "This will perform a $1 reset of your N8N installation!"
     warning "This action cannot be undone unless you have backups!"
     case "$PROJECT_DIR" in
         "data-only")
@@ -198,10 +200,18 @@ confirm_reset() {
 # Main reset function
 main() {
     local reset_type="interactive"
+    # shellcheck disable=SC2034
     local data_only=false
+    export data_only
+    # shellcheck disable=SC2034
     local containers_only=false
+    export containers_only
+    # shellcheck disable=SC2034
     local full_reset=false
+    export full_reset
+    # shellcheck disable=SC2034
     local create_backup_first=false
+    export create_backup_first
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -209,7 +219,9 @@ main() {
                 usage
                 ;;
             -f|--force)
+                # shellcheck disable=SC2034
                 FORCE_RESET=true
+                export FORCE_RESET
                 shift
                 ;;
             --data-only)
@@ -247,7 +259,7 @@ main() {
         reset_type="full"
     fi
     log "Starting N8N reset process..."
-    log "Reset type: "$PROJECT_DIR""
+    log "Reset type: $reset_type"
     confirm_reset "$PROJECT_DIR"
     # Create backup if requested
     if [[ "$PROJECT_DIR" == "true" ]]; then

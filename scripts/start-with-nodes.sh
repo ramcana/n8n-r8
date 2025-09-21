@@ -4,7 +4,6 @@
 # This script ensures custom nodes are built before starting N8N
 set -euo pipefail
 # Configuration
-SCRIPT_DIR="$(cd "$(dirname "${1}")" && pwd)"
 PROJECT_DIR="$(dirname "${1}")"
 NODES_DIR="${1}/nodes"
 # Colors

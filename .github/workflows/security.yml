@@ -135,16 +135,11 @@ jobs:
 
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
-        if: secrets.SNYK_TOKEN != ''
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high --file=nodes/package.json
-      
-      - name: Snyk scan skipped
-        if: secrets.SNYK_TOKEN == ''
-        run: echo "Skipping Snyk scan - no token provided"
 
   configuration-scan:
     name: Configuration Security Scan

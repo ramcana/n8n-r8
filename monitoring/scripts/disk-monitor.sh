@@ -31,12 +31,13 @@ NC='\033[0m'
 
 # Logging function
 log() {
-    echo "["$(date '+%Y-%m-%d %H:%M:%S')"] $*" | tee -a "$LOG_DIR/disk-monitor.log"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_DIR/disk-monitor.log"
 }
 
 # Generate detailed disk usage report
 generate_report() {
-    local report_file="$LOG_DIR/disk-report-$(date +%Y%m%d_%H%M%S).txt"
+    local report_file
+    report_file="$LOG_DIR/disk-report-$(date +%Y%m%d_%H%M%S).txt"
     {
         echo "System Information:"
         echo "-------------------"
@@ -171,9 +172,9 @@ check_container_usage() {
     
     # Get running containers
     local containers
-    containers="$(docker ps --format "{{.Names}}" | grep "^n8n")"
+    mapfile -t containers < <(docker ps --format "{{.Names}}" | grep "^n8n")
     
-    for container in $containers; do
+    for container in "${containers[@]}"; do
         local size
         size="$(docker exec "$container" df -h / 2>/dev/null | awk 'NR==2 {print $3}' || echo "N/A")"
         local usage

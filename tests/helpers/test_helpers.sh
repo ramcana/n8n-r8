@@ -18,7 +18,6 @@ run_tests() {
         log_debug "Running setup"
         setup
     fi
-}
 
     # Run all test functions
     for func in $(declare -F | grep "test_" | awk '{print $3}'); do
@@ -33,6 +32,7 @@ run_tests() {
 
     # Report results
     print_test_summary
+}
 run_single_test() {
     local test_name="$1"
     TESTS_RUN=$((TESTS_RUN + 1))
@@ -45,6 +45,7 @@ run_single_test() {
         TESTS_FAILED=$((TESTS_FAILED + 1))
         log_error "✗ $test_name"
     fi
+}
 skip_test() {
     local reason="$1"
     TESTS_SKIPPED=$((TESTS_SKIPPED + 1))
@@ -61,7 +62,6 @@ print_test_summary() {
     if [[ $TESTS_FAILED -gt 0 ]]; then
         exit 1
     fi
-}
 }
 
 # Assertion functions

@@ -2,6 +2,7 @@
 
 # N8N-R8 Systemd Service Installation Script
 # This script installs and manages systemd services for N8N-R8
+# shellcheck disable=SC2317
 set -euo pipefail
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -60,16 +61,19 @@ usage() {
     echo "  $0 logs monitoring -f      # Follow monitoring service logs"
     exit 1
 # Check if running as root for system operations
+# shellcheck disable=SC2317
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         error "This operation requires root privileges"
         echo "Please run with sudo: sudo $0"
         exit 1
     fi
+}
+
 # Get service file mapping
+# shellcheck disable=SC2317
 get_service_file() {
     local service="$1"
-}
     
     case "$service" in
         "basic")
@@ -88,8 +92,9 @@ get_service_file() {
             error "Unknown service: $service"
             echo "Available services: basic, nginx, traefik, monitoring"
             exit 1
-;;
+            ;;
     esac
+}
 # List available services
 list_services() {
     log "Available systemd service templates:"
@@ -274,7 +279,8 @@ handle_multiple_services() {
 main() {
     local command=""
     local service=""
-    local user="$(whoami)"
+    local user
+    user="$(whoami)"
     local project_path="$PROJECT_DIR"
     local force=false
     local extra_args=()
@@ -315,7 +321,6 @@ main() {
         error "No command specified"
         usage
     fi
-}
     
     # Handle list command
     if [[ "$command" == "list" ]]; then

@@ -4,38 +4,7 @@
 # Provides common testing utilities and assertion functions
 # Colors for output
 GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
 NC='\033[0m'
-
-# Logging functions
-log() {
-    local level="$1"
-    shift
-    local message="$*"
-    local timestamp
-    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$timestamp] [$level] $message"
-}
-
-log_info() {
-    log "INFO" "$@"
-}
-
-log_warning() {
-    log "WARN" "$@"
-}
-
-log_error() {
-    log "ERROR" "$@"
-}
-
-log_debug() {
-    if [[ "${TEST_DEBUG:-false}" == "true" ]]; then
-        log "DEBUG" "$@"
-    fi
-}
 
 log_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
@@ -104,19 +73,6 @@ assert_equals() {
         log_error "✗ Assertion failed: $message"
         log_error "  Expected: '$expected'"
         log_error "  Actual:   '$actual'"
-        return 1
-    fi
-}
-
-assert_file_executable() {
-    local file="$1"
-    local message="${2:-File should be executable}"
-    if [[ -x "$file" ]]; then
-        log_debug "✓ Assertion passed: $message"
-        return 0
-    else
-        log_error "✗ Assertion failed: $message"
-        log_error "  File: '$file' is not executable"
         return 1
     fi
 }
@@ -332,4 +288,14 @@ assert_execution_time_under() {
     log_error "  Exit code: $exit_code"
     return 1
 }
-# No need to export functions, they are sourced
+# Export functions for use in test scripts
+export -f log_info log_success log_warning log_error log_debug
+export -f run_test_suite run_single_test skip_test print_test_summary
+export -f assert_equals assert_not_equals assert_contains
+export -f assert_file_exists assert_directory_exists
+export -f assert_command_success assert_command_fails
+export -f assert_service_running assert_url_accessible
+export -f docker_cleanup wait_for_service wait_for_url
+export -f create_temp_dir cleanup_temp_dir
+export -f backup_config restore_config
+export -f measure_execution_time assert_execution_time_under

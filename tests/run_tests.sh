@@ -155,7 +155,7 @@ run_test_category() {
     
     local success=true
     for test_file in "${test_files[@]}"; do
-        if ! source "$test_file"; then
+        if ! bash "$test_file"; then
             success=false
         fi
     done

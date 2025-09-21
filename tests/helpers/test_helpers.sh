@@ -33,7 +33,6 @@ run_tests() {
 
     # Report results
     print_test_summary
-}
 run_single_test() {
     local test_name="$1"
     TESTS_RUN=$((TESTS_RUN + 1))
@@ -46,9 +45,6 @@ run_single_test() {
         TESTS_FAILED=$((TESTS_FAILED + 1))
         log_error "✗ $test_name"
     fi
-}
-}
-
 skip_test() {
     local reason="$1"
     TESTS_SKIPPED=$((TESTS_SKIPPED + 1))

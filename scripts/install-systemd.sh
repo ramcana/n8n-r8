@@ -21,18 +21,12 @@ log() {
 error() {
     echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
 }
-}
-
 warning() {
     echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
 }
-}
-
 info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
 }
-}
-
 # Usage function
 usage() {
     echo "Usage: $0 [OPTIONS] [COMMAND] [SERVICE]"
@@ -111,6 +105,7 @@ list_services() {
         done
     else
         error "Systemd directory not found: $SYSTEMD_DIR"
+    fi
     log "Installed services:"
     for service_type in basic nginx traefik monitoring; do
         local service_file
@@ -123,6 +118,7 @@ list_services() {
             printf "  %-20s enabled: %-8s active: %s\n" "$service_file" "$status" "$active"
         fi
     done
+}
 # Customize service file
 customize_service_file() {
     local source_file="$1"
@@ -141,6 +137,7 @@ customize_service_file() {
     chmod 644 "$target_file"
     chown root:root "$target_file"
     info "Service file customized for user '$user' and path '$project_path'"
+}
 # Install service
 install_service() {
     local user="$2"
@@ -179,6 +176,7 @@ install_service() {
     echo "  1. Enable service: sudo systemctl enable $service_file"
     echo "  2. Start service: sudo systemctl start $service_file"
     echo "  3. Check status: sudo systemctl status $service_file"
+}
 # Uninstall service
 uninstall_service() {
     local force="$2"
@@ -187,7 +185,6 @@ uninstall_service() {
         warning "Service not installed: $service_file"
         return 0
     fi
-}
     
     # Confirmation
     if [[ "$force" != "true" ]]; then
@@ -209,6 +206,7 @@ uninstall_service() {
     # Remove service file
     rm -f "$target_file"
     log "Service uninstalled successfully: $service_file"
+}
 # Manage service (enable/disable/start/stop/restart)
 manage_service() {
     local action="$1"
@@ -345,7 +343,7 @@ main() {
     esac
 
     handle_multiple_services "$command" "$service" "$user" "$project_path" "$force"
-}
+    
     log "N8N-R8 Systemd Service Manager"
     log "Command: $command, Service: $service, User: $user"
     # Execute command
@@ -364,10 +362,5 @@ main() {
             ;;
     esac
 }
-        "uninstall")
-            handle_multiple_services "$command" "$service" "$force"
-        "logs")
-            handle_multiple_services "$command" "$service" "${extra_args[@]}"
-            handle_multiple_services "$command" "$service"
 # Run main function
 main "$@"

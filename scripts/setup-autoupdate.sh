@@ -148,7 +148,6 @@ interactive_config() {
         "manual")
             log "INFO" "Manual update mode configured"
             ;;
-            ;;
     esac
     # Show summary
     show_summary "$update_method"
@@ -306,5 +305,6 @@ main() {
     else
         non_interactive_setup
     fi
+}
 # Run main function
 main "$@"

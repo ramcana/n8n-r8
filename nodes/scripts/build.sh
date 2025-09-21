@@ -39,8 +39,6 @@ check_prerequisites() {
     fi
     log "Prerequisites check passed (Node.js $node_version)"
 }
-}
-
 # Install dependencies
 install_dependencies() {
     log "Installing dependencies..."

@@ -2,6 +2,7 @@
 
 # N8N with Nginx Proxy Start Script
 # This script starts N8N with Nginx as a reverse proxy
+# shellcheck disable=SC2317
 set -euo pipefail
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

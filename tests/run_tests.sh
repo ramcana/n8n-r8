@@ -2,7 +2,7 @@
 
 # N8N-R8 Test Runner
 # Comprehensive test execution script for all test categories
-
+# shellcheck disable=SC2317
 set -euo pipefail
 
 # Script directory

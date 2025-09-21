@@ -136,9 +136,9 @@ N8N Version: "$(docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T n8n 
 PostgreSQL Version: "$(docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres psql --version 2>/dev/null || echo "Unknown")"
 Redis Version: "$(docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T redis redis-server --version 2>/dev/null || echo "Unknown")"
 Backup Contents:
-- N8N Data: "$(ls -lh "$BACKUP_PATH/n8n_data.tar.gz" 2>/dev/null | awk '{print $5}' || echo "Not found")"
-- PostgreSQL Dump: "$(ls -lh "$BACKUP_PATH/postgres_dump.sql.gz" 2>/dev/null | awk '{print $5}' || echo "Not found")"
-- Redis Data: "$(ls -lh "$BACKUP_PATH/redis_data.tar.gz" 2>/dev/null | awk '{print $5}' || echo "Not found")"
+- N8N Data: "$(find "$BACKUP_PATH/n8n_data.tar.gz" -type f -exec stat -c%s {} \; 2>/dev/null || echo "Not found")"
+- PostgreSQL Dump: "$(find "$BACKUP_PATH/postgres_dump.sql.gz" -type f -exec stat -c%s {} \; 2>/dev/null || echo "Not found")"
+- Redis Data: "$(find "$BACKUP_PATH/redis_data.tar.gz" -type f -exec stat -c%s {} \; 2>/dev/null || echo "Not found")"
 - Configuration Files: "$(du -sh "$BACKUP_PATH/config" 2>/dev/null | awk '{print $1}' || echo "Not found")"
 Total Backup Size: "$(du -sh "$BACKUP_PATH" | awk '{print $1}')"
 EOF

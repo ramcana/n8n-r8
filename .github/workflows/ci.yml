@@ -266,16 +266,61 @@ jobs:
           echo "📋 Environment configuration for nginx:"
           grep -E "(N8N_HOST|WEBHOOK_URL|POSTGRES_)" .env
 
+          # Ensure all critical environment variables are set
+          echo "📋 Verifying all required environment variables:"
+          echo "Complete .env file contents:"
+          cat .env
+          echo "---"
+
+          # Check for empty or missing critical variables
+          missing_vars=""
+          for var in N8N_ENCRYPTION_KEY N8N_JWT_SECRET POSTGRES_USER POSTGRES_DB POSTGRES_PASSWORD REDIS_PASSWORD; do
+            if ! grep -q "^${var}=" .env || grep -q "^${var}=$" .env; then
+              missing_vars="$missing_vars $var"
+            fi
+          done
+
+          if [ -n "$missing_vars" ]; then
+            echo "❌ Missing or empty critical environment variables:$missing_vars"
+            exit 1
+          fi
+
+          echo "✅ All critical environment variables are set"
+
           # Ensure custom nodes are built and available
           echo "📋 Checking custom nodes build:"
-          ls -la nodes/dist/ || echo "No custom nodes dist directory found"
+          if [ -d "nodes/dist" ]; then
+            ls -la nodes/dist/
+            echo "Custom nodes content:"
+            find nodes/dist -type f -name "*.js" | head -10
+          else
+            echo "❌ No custom nodes dist directory found - this might cause n8n startup issues"
+            # Create empty directory to prevent mount issues
+            mkdir -p nodes/dist
+          fi
+
+          # Create required data directories with proper permissions
+          echo "📋 Setting up data directories:"
+          mkdir -p data/n8n data/postgres data/redis
+          chmod -R 755 data/
+
+          # Verify Docker network exists
+          echo "📋 Ensuring Docker network exists:"
+          docker network create n8n-network || echo "Network already exists"
+          docker network ls | grep n8n-network
 
           # Start services
           docker compose -f docker-compose.yml -f docker-compose.nginx.yml up -d
 
-          # Wait for initial startup
-          echo "⏳ Waiting for services to start (initial 60s)..."
-          sleep 60
+          # Wait for initial startup and monitor n8n startup
+          echo "⏳ Waiting for services to start (monitoring n8n startup)..."
+          sleep 30
+
+          # Check n8n startup logs immediately
+          echo "📋 N8N startup logs (first 30 seconds):"
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=50
+
+          sleep 30
 
           # Check container status early
           echo "📊 Initial container status:"
@@ -286,6 +331,10 @@ jobs:
           for i in {1..10}; do
             if docker compose -f docker-compose.yml -f docker-compose.nginx.yml exec -T postgres pg_isready -U n8n_test -d n8n_test; then
               echo "✅ PostgreSQL is ready!"
+              
+              # Test database connection with the exact credentials n8n will use
+              echo "🔍 Testing database connection with n8n credentials..."
+              docker compose -f docker-compose.yml -f docker-compose.nginx.yml exec -T postgres psql -U n8n_test -d n8n_test -c "SELECT version();" || echo "❌ Database connection test failed"
               break
             else
               echo "⏳ PostgreSQL not ready yet (attempt $i/10), waiting 5s..."

@@ -1,4 +1,4 @@
-version: '3.8'
+# Docker Compose version is now optional and deprecated
 
 services:
   n8n:
@@ -8,8 +8,8 @@ services:
     # Conditional port exposure - only expose when not using reverse proxy
     ports:
       - "${N8N_PORT:-5678}:5678"
-    profiles:
-      - direct-access
+    # Note: profiles removed to allow nginx/traefik overrides to work properly
+    # Port exposure will be overridden by proxy configurations
     # Uncomment for M1 Macs if needed
     # platform: linux/amd64
     labels:
@@ -54,7 +54,11 @@ services:
     networks:
       - n8n-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -63,10 +67,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
         reservations:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
     # Traefik labels (uncomment when using Traefik)
     # labels:
     #   - "traefik.enable=true"
@@ -102,10 +106,10 @@ services:
       resources:
         limits:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
     command: >
       postgres
       -c max_connections=200
@@ -157,10 +161,10 @@ services:
       resources:
         limits:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.1'
+          cpus: "0.1"
 
 networks:
   n8n-network:

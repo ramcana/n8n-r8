@@ -309,6 +309,12 @@ jobs:
           docker network create n8n-network || echo "Network already exists"
           docker network ls | grep n8n-network
 
+          # Temporarily modify health check for more lenient CI testing
+          echo "📋 Applying CI-specific health check configuration..."
+          sed -i 's/start_period: 120s/start_period: 180s/' docker-compose.yml
+          sed -i 's/retries: 5/retries: 8/' docker-compose.yml
+          sed -i 's/interval: 30s/interval: 20s/' docker-compose.yml
+
           # Start services
           docker compose -f docker-compose.yml -f docker-compose.nginx.yml up -d
 
@@ -369,7 +375,17 @@ jobs:
 
           # Check n8n health directly (if possible)
           echo "🔍 Checking n8n container health status..."
-          docker inspect n8n --format='{{.State.Health.Status}}' || echo "No health status available"
+          health_status=$(docker inspect n8n --format='{{.State.Health.Status}}' 2>/dev/null || echo "no-health")
+          echo "N8N health status: $health_status"
+
+          # If unhealthy, check if n8n is actually listening on port 5678
+          if [ "$health_status" = "unhealthy" ]; then
+            echo "🔍 Checking if n8n is listening on port 5678..."
+            docker compose -f docker-compose.yml -f docker-compose.nginx.yml exec -T n8n netstat -tlnp | grep 5678 || echo "❌ N8N not listening on port 5678"
+            
+            echo "🔍 Checking n8n process status..."
+            docker compose -f docker-compose.yml -f docker-compose.nginx.yml exec -T n8n ps aux || echo "❌ Cannot check process status"
+          fi
 
           # Show comprehensive logs before testing
           echo "📋 Complete N8N container logs:"

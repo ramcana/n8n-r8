@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, fix-sc2012-and-test-suite]
   pull_request:
     branches: [main]
   schedule:

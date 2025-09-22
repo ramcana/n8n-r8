@@ -257,31 +257,106 @@ jobs:
       - name: Test Nginx deployment
         if: matrix.deployment == 'nginx'
         run: |
+          echo "🚀 Starting Nginx deployment test..."
+
+          # Override N8N_HOST for nginx deployment (n8n should be accessible via nginx)
+          sed -i 's/N8N_HOST=n8n.localhost/N8N_HOST=localhost/g' .env
+          sed -i 's|WEBHOOK_URL=http://n8n.localhost/|WEBHOOK_URL=http://localhost/|g' .env
+
+          echo "📋 Environment configuration for nginx:"
+          grep -E "(N8N_HOST|WEBHOOK_URL|POSTGRES_)" .env
+
+          # Ensure custom nodes are built and available
+          echo "📋 Checking custom nodes build:"
+          ls -la nodes/dist/ || echo "No custom nodes dist directory found"
+
+          # Start services
           docker compose -f docker-compose.yml -f docker-compose.nginx.yml up -d
 
-          # Wait for services to be healthy (longer timeout for full stack)
-          echo "Waiting for services to start..."
-          sleep 120
+          # Wait for initial startup
+          echo "⏳ Waiting for services to start (initial 60s)..."
+          sleep 60
 
-          # Check container status
-          echo "Container status:"
+          # Check container status early
+          echo "📊 Initial container status:"
           docker compose -f docker-compose.yml -f docker-compose.nginx.yml ps
 
-          # Show logs for debugging if n8n is not healthy
-          echo "N8N container logs:"
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=20
+          # Check if postgres is healthy first
+          echo "🔍 Checking PostgreSQL health..."
+          for i in {1..10}; do
+            if docker compose -f docker-compose.yml -f docker-compose.nginx.yml exec -T postgres pg_isready -U n8n_test -d n8n_test; then
+              echo "✅ PostgreSQL is ready!"
+              break
+            else
+              echo "⏳ PostgreSQL not ready yet (attempt $i/10), waiting 5s..."
+              sleep 5
+            fi
+          done
 
-          # Wait a bit more for nginx to be fully ready
-          sleep 30
+          # Show early n8n logs to catch startup issues
+          echo "📋 Early N8N container logs:"
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=30
+
+          # Wait longer for n8n to be fully ready and check its health status
+          echo "⏳ Waiting for n8n to be fully ready..."
+          for i in {1..12}; do
+            health_status=$(docker inspect n8n --format='{{.State.Health.Status}}' 2>/dev/null || echo "no-health")
+            echo "N8N health status (attempt $i/12): $health_status"
+            
+            if [ "$health_status" = "healthy" ]; then
+              echo "✅ N8N is healthy!"
+              break
+            elif [ "$health_status" = "unhealthy" ]; then
+              echo "❌ N8N is unhealthy, showing logs:"
+              docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=20
+            fi
+            
+            sleep 10
+          done
+
+          # Final container status check
+          echo "📊 Final container status:"
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml ps
+
+          # Check n8n health directly (if possible)
+          echo "🔍 Checking n8n container health status..."
+          docker inspect n8n --format='{{.State.Health.Status}}' || echo "No health status available"
+
+          # Show comprehensive logs before testing
+          echo "📋 Complete N8N container logs:"
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=50
+
+          echo "📋 PostgreSQL container logs:"
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs postgres --tail=20
+
+          echo "📋 Nginx container logs:"
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs nginx --tail=20
 
           # Test Nginx health endpoint
-          echo "Testing nginx health endpoint..."
+          echo "🧪 Testing nginx health endpoint..."
           curl -f http://localhost/health || exit 1
 
-          # Test that nginx can proxy to n8n (if n8n is healthy)
-          echo "Testing nginx proxy to n8n..."
-          curl -f http://localhost/healthz || echo "N8N not ready yet, but nginx health passed"
+          # Test that nginx can proxy to n8n
+          echo "🧪 Testing nginx proxy to n8n healthz endpoint..."
+          for i in {1..5}; do
+            if curl -f http://localhost/healthz; then
+              echo "✅ N8N health check passed!"
+              break
+            else
+              echo "❌ N8N health check attempt $i failed, retrying in 15s..."
+              sleep 15
+            fi
+          done
 
+          # Final attempt - if this fails, we'll see the error
+          curl -f http://localhost/healthz || {
+            echo "❌ Final n8n health check failed"
+            echo "📋 Final N8N logs:"
+            docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=100
+            exit 1
+          }
+
+          echo "✅ Nginx deployment test completed successfully"
           docker compose -f docker-compose.yml -f docker-compose.nginx.yml down -v
           # Cleanup test environment
           rm -f .env

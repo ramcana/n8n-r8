@@ -130,8 +130,10 @@ test_sc1090_regression() {
     local sc1090_errors
     sc1090_errors=$(find "$PROJECT_ROOT" -name "*.sh" -type f \
         -not -path "*/node_modules/*" \
+        -not -path "*/nodes/node_modules/*" \
         -not -path "*/data/*" \
         -not -path "*/.git/*" \
+        -not -path "*/logs/*" \
         -exec timeout "$SHELLCHECK_TIMEOUT" shellcheck \
             --external-sources \
             --source-path="$PROJECT_ROOT/tests/helpers:$PROJECT_ROOT/tests:$PROJECT_ROOT/scripts" \
@@ -156,8 +158,10 @@ test_sc1091_regression() {
     local sc1091_errors
     sc1091_errors=$(find "$PROJECT_ROOT" -name "*.sh" -type f \
         -not -path "*/node_modules/*" \
+        -not -path "*/nodes/node_modules/*" \
         -not -path "*/data/*" \
         -not -path "*/.git/*" \
+        -not -path "*/logs/*" \
         -exec timeout "$SHELLCHECK_TIMEOUT" shellcheck \
             --external-sources \
             --source-path="$PROJECT_ROOT/tests/helpers:$PROJECT_ROOT/tests:$PROJECT_ROOT/scripts" \
@@ -182,8 +186,10 @@ test_sc2034_regression() {
     local sc2034_errors
     sc2034_errors=$(find "$PROJECT_ROOT" -name "*.sh" -type f \
         -not -path "*/node_modules/*" \
+        -not -path "*/nodes/node_modules/*" \
         -not -path "*/data/*" \
         -not -path "*/.git/*" \
+        -not -path "*/logs/*" \
         -exec timeout "$SHELLCHECK_TIMEOUT" shellcheck \
             --external-sources \
             --source-path="$PROJECT_ROOT/tests/helpers:$PROJECT_ROOT/tests:$PROJECT_ROOT/scripts" \
@@ -398,8 +404,10 @@ test_no_new_critical_errors_regression() {
         local errors
         errors=$(find "$PROJECT_ROOT" -name "*.sh" -type f \
             -not -path "*/node_modules/*" \
+            -not -path "*/nodes/node_modules/*" \
             -not -path "*/data/*" \
             -not -path "*/.git/*" \
+            -not -path "*/logs/*" \
             -exec timeout "$SHELLCHECK_TIMEOUT" shellcheck \
                 --external-sources \
                 --source-path="$PROJECT_ROOT/tests/helpers:$PROJECT_ROOT/tests:$PROJECT_ROOT/scripts" \

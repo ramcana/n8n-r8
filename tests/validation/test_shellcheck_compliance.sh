@@ -42,8 +42,10 @@ test_shellcheck_available() {
 get_shell_scripts() {
     find "$PROJECT_ROOT" -name "*.sh" -type f \
         -not -path "*/node_modules/*" \
+        -not -path "*/nodes/node_modules/*" \
         -not -path "*/data/*" \
-        -not -path "*/.git/*" 2>/dev/null | sort
+        -not -path "*/.git/*" \
+        -not -path "*/logs/*" 2>/dev/null | sort
 }
 
 # Test individual script with shellcheck

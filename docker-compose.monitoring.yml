@@ -264,7 +264,7 @@ services:
 
   # Note: Redis metrics can be added with redis_exporter if needed
   # redis_exporter:
-  #   image: oliver006/redis_exporter:latest
+  #   image: oliver006/redis_exporter:v1.63.0
   #   container_name: n8n-redis-exporter
   #   environment:
   #     - REDIS_ADDR=redis://redis:6379

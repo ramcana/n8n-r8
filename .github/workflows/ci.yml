@@ -198,12 +198,21 @@ jobs:
       - name: Test monitoring deployment
         if: matrix.deployment == 'monitoring'
         run: |
+          # Setup monitoring directories with proper permissions
+          ./monitoring/scripts/setup-permissions.sh
+
           docker compose -f docker-compose.monitoring.yml up -d
           sleep 60
           docker compose ps
+
+          # Check container health
+          docker compose -f docker-compose.monitoring.yml ps --format "table {{.Name}}\t{{.Status}}"
+
           # Test monitoring endpoints
           curl -f http://localhost:9090/-/healthy || exit 1  # Prometheus
           curl -f http://localhost:3000/api/health || exit 1  # Grafana
+          curl -f http://localhost:3100/ready || exit 1      # Loki
+
           docker compose -f docker-compose.monitoring.yml down -v
 
   build-custom-nodes:

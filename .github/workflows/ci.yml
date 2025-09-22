@@ -153,9 +153,18 @@ jobs:
       - name: Set up environment
         run: |
           cp .env.example .env
-          # Set test credentials
+          # Set test credentials and required variables
           sed -i 's/changeme123!/test_password_123!/g' .env
           sed -i 's/change-this-secure-password/test_secure_password!/g' .env
+          sed -i 's/generate-32-character-key-here/test-encryption-key-32-characters/g' .env
+          sed -i 's/generate-jwt-secret-here/test-jwt-secret-key/g' .env
+
+          # Ensure required database variables are set
+          echo "" >> .env
+          echo "# CI Test Overrides" >> .env
+          echo "POSTGRES_DB=n8n_test" >> .env
+          echo "POSTGRES_USER=n8n_test" >> .env
+          echo "REDIS_DB=0" >> .env
 
       - name: Create external Docker network if not exists
         run: docker network create n8n-network || true

@@ -165,6 +165,11 @@ jobs:
           echo "POSTGRES_DB=n8n_test" >> .env
           echo "POSTGRES_USER=n8n_test" >> .env
           echo "REDIS_DB=0" >> .env
+          echo "N8N_LOG_LEVEL=debug" >> .env
+          echo "N8N_DIAGNOSTICS_ENABLED=false" >> .env
+          echo "N8N_VERSION_NOTIFICATIONS_ENABLED=false" >> .env
+          echo "N8N_TEMPLATES_ENABLED=false" >> .env
+          echo "N8N_ONBOARDING_FLOW_DISABLED=true" >> .env
 
       - name: Create external Docker network if not exists
         run: docker network create n8n-network || true
@@ -213,11 +218,15 @@ jobs:
 
           # Wait for services to be healthy (longer timeout for full stack)
           echo "Waiting for services to start..."
-          sleep 60
+          sleep 120
 
           # Check container status
           echo "Container status:"
           docker compose -f docker-compose.yml -f docker-compose.nginx.yml ps
+
+          # Show logs for debugging if n8n is not healthy
+          echo "N8N container logs:"
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=20
 
           # Wait a bit more for nginx to be fully ready
           sleep 30

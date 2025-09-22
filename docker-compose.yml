@@ -168,11 +168,7 @@ services:
 
 networks:
   n8n-network:
-    driver: bridge
-    name: n8n-network
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
+    external: true
 
 volumes:
   n8n-data:

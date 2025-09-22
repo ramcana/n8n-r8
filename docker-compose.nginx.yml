@@ -40,3 +40,7 @@ services:
   # Override n8n service to remove port exposure when using nginx
   n8n:
     ports: [] # Remove port exposure, nginx will handle routing
+
+networks:
+  n8n-network:
+    external: true

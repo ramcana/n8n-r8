@@ -157,6 +157,9 @@ jobs:
           sed -i 's/changeme123!/test_password_123!/g' .env
           sed -i 's/change-this-secure-password/test_secure_password!/g' .env
 
+      - name: Create external Docker network if not exists
+        run: docker network create n8n-network || true
+
       - name: Test basic deployment
         if: matrix.deployment == 'basic'
         run: |

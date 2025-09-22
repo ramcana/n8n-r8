@@ -273,7 +273,11 @@ services:
 
 networks:
   n8n-network:
-    external: true
+    name: n8n-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 volumes:
   prometheus-data:

@@ -75,10 +75,37 @@ jobs:
 
       - name: Validate Docker Compose files
         run: |
-          docker compose -f docker-compose.yml config
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml config
-          docker compose -f docker-compose.yml -f docker-compose.traefik.yml config
-          docker compose -f docker-compose.monitoring.yml config
+          # Set up environment for validation
+          cp .env.example .env
+          sed -i 's/changeme123!/test_password_123!/g' .env
+          sed -i 's/change-this-secure-password/test_secure_password!/g' .env
+          sed -i 's/generate-32-character-key-here/test-encryption-key-32-characters/g' .env
+          sed -i 's/generate-jwt-secret-here/test-jwt-secret-key/g' .env
+          sed -i 's/N8N_HOST=localhost/N8N_HOST=n8n.localhost/g' .env
+          sed -i 's/TRAEFIK_DASHBOARD_HOST=traefik.localhost/TRAEFIK_DASHBOARD_HOST=traefik-dashboard.localhost/g' .env
+          sed -i 's|WEBHOOK_URL=http://localhost:5678/|WEBHOOK_URL=http://n8n.localhost/|g' .env
+
+          echo "" >> .env
+          echo "# CI Validation Overrides" >> .env
+          echo "POSTGRES_DB=n8n_test" >> .env
+          echo "POSTGRES_USER=n8n_test" >> .env
+          echo "REDIS_DB=0" >> .env
+          echo "N8N_LOG_LEVEL=info" >> .env
+
+          # Validate all Docker Compose configurations
+          echo "Validating basic configuration..."
+          docker compose -f docker-compose.yml config --quiet
+
+          echo "Validating Nginx configuration..."
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml config --quiet
+
+          echo "Validating Traefik configuration..."
+          docker compose -f docker-compose.yml -f docker-compose.traefik.yml config --quiet
+
+          echo "Validating monitoring configuration..."
+          docker compose -f docker-compose.monitoring.yml config --quiet
+
+          echo "✅ All Docker Compose files validated successfully"
 
       - name: Lint JavaScript/TypeScript
         run: |
@@ -163,6 +190,11 @@ jobs:
           sed -i 's/change-this-secure-password/test_secure_password!/g' .env
           sed -i 's/generate-32-character-key-here/test-encryption-key-32-characters/g' .env
           sed -i 's/generate-jwt-secret-here/test-jwt-secret-key/g' .env
+
+          # Set host configuration for Traefik routing
+          sed -i 's/N8N_HOST=localhost/N8N_HOST=n8n.localhost/g' .env
+          sed -i 's/TRAEFIK_DASHBOARD_HOST=traefik.localhost/TRAEFIK_DASHBOARD_HOST=traefik-dashboard.localhost/g' .env
+          sed -i 's|WEBHOOK_URL=http://localhost:5678/|WEBHOOK_URL=http://n8n.localhost/|g' .env
 
           # Ensure required database variables are set
           echo "" >> .env
@@ -361,6 +393,13 @@ jobs:
           cp .env.example .env
           sed -i 's/changeme123!/test_password_123!/g' .env
           sed -i 's/change-this-secure-password/test_secure_password!/g' .env
+          sed -i 's/generate-32-character-key-here/test-encryption-key-32-characters/g' .env
+          sed -i 's/generate-jwt-secret-here/test-jwt-secret-key/g' .env
+
+          echo "" >> .env
+          echo "# Performance Test Overrides" >> .env
+          echo "POSTGRES_DB=n8n_test" >> .env
+          echo "POSTGRES_USER=n8n_test" >> .env
 
       - name: Start N8N
         run: |

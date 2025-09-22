@@ -52,12 +52,17 @@ jobs:
           # Set up source paths for shellcheck to follow includes
           export SHELLCHECK_OPTS="--source-path=tests/helpers:tests:scripts --external-sources"
 
-          # Run shellcheck with enhanced options
+          # Run shellcheck with enhanced options on project scripts only
           # -x: Follow source/include statements
           # --source-path: Specify directories to search for sourced files
           # --format: Use clear error format for CI
           # --severity: Include all severity levels for comprehensive checking
-          find . -name "*.sh" -type f -not -path "*/node_modules/*" -not -path "*/data/*" | \
+          find . -name "*.sh" -type f \
+            -not -path "*/node_modules/*" \
+            -not -path "*/nodes/node_modules/*" \
+            -not -path "*/data/*" \
+            -not -path "*/.git/*" \
+            -not -path "*/logs/*" | \
             xargs shellcheck -x --source-path=tests/helpers:tests:scripts --format=gcc --severity=style
 
           if [ $? -eq 0 ]; then

@@ -1,4 +1,4 @@
-version: '3.8'
+# Docker Compose version is now optional and deprecated
 
 services:
   nginx:
@@ -20,7 +20,15 @@ services:
     networks:
       - n8n-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -31,4 +39,8 @@ services:
 
   # Override n8n service to remove port exposure when using nginx
   n8n:
-    ports: []  # Remove port exposure, nginx will handle routing
+    ports: [] # Remove port exposure, nginx will handle routing
+
+networks:
+  n8n-network:
+    external: true

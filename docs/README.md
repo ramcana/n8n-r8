@@ -17,9 +17,14 @@ docs/
 │   ├── development.md     # Development setup guide
 │   ├── scaling.md         # Scaling and performance guide
 │   └── security.md        # Security configuration guide
+├── development/           # Development guides and standards
+│   ├── shellcheck-validation.md  # ShellCheck validation guide
+│   ├── shell-script-standards.md # Shell script standards
+│   └── coding-standards.md       # General coding standards
 ├── troubleshooting/       # Troubleshooting guides and flowcharts
 │   ├── common-issues.md   # Common issues and solutions
 │   ├── flowcharts.md      # Troubleshooting flowcharts
+│   ├── shellcheck-issues.md # ShellCheck troubleshooting
 │   ├── logs.md           # Log analysis guide
 │   └── performance.md     # Performance troubleshooting
 ├── monitoring/            # Monitoring and observability
@@ -46,21 +51,31 @@ docs/
 ## Quick Links
 
 ### Architecture
+
 - [System Overview](architecture/overview.md) - High-level system architecture
 - [Component Details](architecture/components.md) - Detailed component descriptions
 - [Network Architecture](architecture/networking.md) - Network design and security
 
 ### Deployment
+
 - [Production Deployment](deployment/production.md) - Production setup guide
 - [Development Setup](deployment/development.md) - Local development guide
 - [Security Configuration](deployment/security.md) - Security best practices
 
+### Development
+
+- [ShellCheck Validation](development/shellcheck-validation.md) - Shell script validation guide
+- [Shell Script Standards](development/shell-script-standards.md) - Shell scripting best practices
+
 ### Troubleshooting
+
 - [Common Issues](troubleshooting/common-issues.md) - Frequently encountered problems
 - [Troubleshooting Flowcharts](troubleshooting/flowcharts.md) - Visual troubleshooting guides
+- [ShellCheck Issues](troubleshooting/shellcheck-issues.md) - ShellCheck error resolution
 - [Performance Issues](troubleshooting/performance.md) - Performance optimization
 
 ### Monitoring
+
 - [Monitoring Setup](monitoring/setup.md) - Complete monitoring configuration
 - [Custom Dashboards](monitoring/dashboards.md) - Dashboard creation guide
 - [Alert Configuration](monitoring/alerts.md) - Alert setup and management
@@ -70,12 +85,15 @@ docs/
 This documentation uses several formats for diagrams:
 
 ### Mermaid Diagrams
+
 Most architecture and flow diagrams use [Mermaid](https://mermaid-js.github.io/) format for easy rendering in GitHub and other platforms.
 
 ### ASCII Diagrams
+
 Simple text-based diagrams for basic layouts and structures.
 
 ### PlantUML
+
 Complex sequence and component diagrams use PlantUML format.
 
 ## Contributing to Documentation
@@ -91,10 +109,12 @@ When contributing to documentation:
 ## Documentation Standards
 
 ### File Naming
+
 - Use lowercase with hyphens: `common-issues.md`
 - Be descriptive: `production-deployment-guide.md`
 
 ### Content Structure
+
 - Start with a brief overview
 - Use clear headings and subheadings
 - Include code examples where applicable
@@ -102,6 +122,7 @@ When contributing to documentation:
 - Include links to related documentation
 
 ### Diagram Standards
+
 - Use consistent colors and styles
 - Include legends where necessary
 - Keep diagrams simple and focused

@@ -178,7 +178,7 @@ package_nodes() {
     # Create package
     npm pack
     local package_file
-    package_file=$(ls -t *.tgz | head -n1)
+    package_file=$(find . -maxdepth 1 -name "*.tgz" -printf "%T@ %p\n" | sort -nr | head -n1 | cut -d' ' -f2-)
     log "Package created: $package_file"
     # Move to project root for easy access
     mv "$package_file" "$PROJECT_DIR/"

@@ -30,6 +30,7 @@ make quick-full
 ```
 
 **📖 New to N8N-R8?** Start with our [**Getting Started Guide**](GETTING-STARTED.md) | **⚡ Need quick commands?** Check the [**Quick Reference**](QUICK-REFERENCE.md) | **📊 Project status?** Run `make dashboard`
+
 - [⚡ Quick Start](#-quick-start)
 - [📁 Project Structure](#-project-structure)
 - [🛠️ Prerequisites](#️-prerequisites)
@@ -44,36 +45,42 @@ make quick-full
 ## ✨ Key Features
 
 ### 🏗️ **Production-Ready Infrastructure**
+
 - **PostgreSQL & Redis** - Robust database and caching layer
 - **Docker Compose** - Container orchestration with health checks
 - **Resource limits** - Prevent resource exhaustion attacks
 - **Security hardening** - Following Docker and N8N best practices
 
 ### 🌐 **Multiple Deployment Options**
+
 - **Nginx Proxy** - High-performance reverse proxy with SSL
 - **Traefik Proxy** - Modern reverse proxy with automatic SSL
 - **Direct Access** - Simple development setup
 - **Monitoring Stack** - Full observability with Prometheus & Grafana
 
 ### 🔒 **Enterprise Security**
+
 - **SSL/TLS encryption** with Let's Encrypt automation
 - **Security headers** - HSTS, CSP, X-Frame-Options, and more
 - **Network isolation** - Docker networks for service separation
 - **Credential management** - Environment-based configuration
 
 ### 📊 **Comprehensive Monitoring**
+
 - **Prometheus** - Metrics collection and alerting
 - **Grafana** - Beautiful dashboards and visualization
 - **Uptime Kuma** - Service availability monitoring
 - **Log aggregation** - Centralized logging with Loki
 
 ### 🔄 **Automation & Updates**
+
 - **Watchtower integration** - Automatic container updates
 - **Backup & restore** - Automated data protection
 - **Health monitoring** - Proactive issue detection
 - **CI/CD ready** - GitHub Actions workflows included
 
 ### 🛠️ **Developer Experience**
+
 - **Custom nodes development** - Full development environment
 - **Hot-reload support** - Rapid development workflow
 - **One-command deployment** - Get started in minutes
@@ -82,26 +89,31 @@ make quick-full
 ## ⚡ Quick Start
 
 **Start N8N with one command:**
+
 ```bash
 make start-nginx    # Start with Nginx proxy (recommended)
 ```
 
 **Success Indicators:**
+
 - ✅ Check logs with `make logs` - expect 'n8n ready on 0.0.0.0 port 5678'
 - ✅ All containers healthy: `make health`
 - ✅ Access N8N at http://localhost
 
 **Access N8N:**
+
 - Open http://localhost in your browser
 - Login with your credentials (default: admin/changeme123!)
 
 > ⚠️ **SECURITY WARNING**: The default credentials `admin/changeme123!` are for development only. **NEVER use these in production!** Change them immediately in your `.env` file before deploying to production environments.
 
 <!-- Screenshot placeholder: Add screenshot of n8n UI post-startup -->
+
 ![N8N Dashboard](docs/images/n8n-dashboard-screenshot.png)
-*N8N Dashboard after successful startup*
+_N8N Dashboard after successful startup_
 
 **Stop when done:**
+
 ```bash
 make stop
 ```
@@ -199,6 +211,7 @@ N8N_JWT_SECRET=your-jwt-secret-key
 ### 3. Choose Your Setup
 
 #### Option A: Direct Access (Development)
+
 ```bash
 # Using script (recommended)
 ./scripts/start-direct.sh -d
@@ -206,28 +219,36 @@ N8N_JWT_SECRET=your-jwt-secret-key
 # Or using make
 make start-direct
 ```
+
 Access N8N at: http://localhost:5678
 
 #### Option B: Basic N8N (No Proxy)
+
 ```bash
 docker compose up -d
 ```
+
 Access N8N at: http://localhost:5678
 
 #### Option C: With Nginx Proxy
+
 ```bash
 ./scripts/start-nginx.sh -d
 ```
+
 Access N8N at: http://localhost
 
 #### Option D: With Traefik Proxy
+
 ```bash
 ./scripts/start-traefik.sh -d
 ```
+
 Access N8N at: http://localhost
 Traefik Dashboard: http://localhost:8080
 
 #### Option E: With Monitoring
+
 ```bash
 # Basic monitoring (recommended for development)
 make monitor-basic
@@ -235,12 +256,15 @@ make monitor-basic
 # Full monitoring stack (recommended for production)
 make monitor-full
 ```
+
 Monitoring interfaces:
+
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000 (admin/admin)
 - Alertmanager: http://localhost:9093
 
 #### Stop All Services
+
 ```bash
 # Stop all services regardless of configuration
 ./scripts/stop-all.sh
@@ -250,6 +274,7 @@ make stop-all
 ```
 
 #### Custom Nodes Development
+
 ```bash
 # Start development environment (with watch mode)
 ./scripts/start-custom-nodes.sh dev -d
@@ -268,29 +293,31 @@ cd nodes && ./scripts/build.sh build
 
 ### Environment Variables
 
-> ⚠️ **CRITICAL SECURITY WARNING**: 
+> ⚠️ **CRITICAL SECURITY WARNING**:
+>
 > - **NEVER commit `.env` files to git!**
 > - **ALWAYS change default passwords before production deployment!**
 > - **Use secure, unique passwords and keys in production!**
 > - **Store sensitive data in secure secret management systems!**
-> 
+>
 > The default credentials (`admin/changeme123!`) are **ONLY for development**. Using them in production is a **serious security risk**.
 
 Key environment variables in `.env`:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `N8N_BASIC_AUTH_USER` | admin | N8N admin username ⚠️ **CHANGE IN PRODUCTION** |
-| `N8N_BASIC_AUTH_PASSWORD` | changeme123! | N8N admin password ⚠️ **CHANGE IN PRODUCTION** |
-| `N8N_HOST` | localhost | Domain name for N8N |
-| `POSTGRES_PASSWORD` | n8n_secure_password_123! | PostgreSQL password ⚠️ **CHANGE IN PRODUCTION** |
-| `REDIS_PASSWORD` | redis_secure_password_123! | Redis password ⚠️ **CHANGE IN PRODUCTION** |
-| `N8N_ENCRYPTION_KEY` | Required | N8N encryption key (32 chars) ⚠️ **REQUIRED** |
-| `N8N_JWT_SECRET` | Required | JWT secret key ⚠️ **REQUIRED** |
+| Variable                  | Default                    | Description                                     |
+| ------------------------- | -------------------------- | ----------------------------------------------- |
+| `N8N_BASIC_AUTH_USER`     | admin                      | N8N admin username ⚠️ **CHANGE IN PRODUCTION**  |
+| `N8N_BASIC_AUTH_PASSWORD` | changeme123!               | N8N admin password ⚠️ **CHANGE IN PRODUCTION**  |
+| `N8N_HOST`                | localhost                  | Domain name for N8N                             |
+| `POSTGRES_PASSWORD`       | n8n_secure_password_123!   | PostgreSQL password ⚠️ **CHANGE IN PRODUCTION** |
+| `REDIS_PASSWORD`          | redis_secure_password_123! | Redis password ⚠️ **CHANGE IN PRODUCTION**      |
+| `N8N_ENCRYPTION_KEY`      | Required                   | N8N encryption key (32 chars) ⚠️ **REQUIRED**   |
+| `N8N_JWT_SECRET`          | Required                   | JWT secret key ⚠️ **REQUIRED**                  |
 
 ### SSL/HTTPS Setup
 
 #### For Nginx:
+
 1. Place SSL certificates in `nginx/ssl/`:
    - `cert.pem` - Certificate file
    - `key.pem` - Private key file
@@ -298,6 +325,7 @@ Key environment variables in `.env`:
 3. Restart services
 
 #### For Traefik:
+
 1. Update `SSL_EMAIL` in `.env`
 2. For production: `./scripts/start-traefik.sh -d`
 3. For testing: `./scripts/start-traefik.sh --staging -d`
@@ -326,24 +354,28 @@ make monitor-disk
 ### Monitoring Features
 
 #### 🔍 **Health Monitoring**
+
 - Service availability checks (N8N, PostgreSQL, Redis, proxies)
 - HTTP endpoint monitoring
 - Container health status
 - System resource monitoring (CPU, Memory, Disk)
 
 #### 📈 **Metrics Collection**
+
 - Prometheus metrics collection
 - Grafana dashboards for visualization
 - Custom business metrics
 - Historical data retention
 
 #### 🚨 **Alerting System**
+
 - Email notifications for critical issues
 - Slack/Discord/PagerDuty integration
 - Configurable alert thresholds
 - Alert escalation and cooldown
 
 #### 💾 **Log Management**
+
 - Centralized log collection with Loki
 - Automatic log rotation
 - Configurable retention periods
@@ -382,6 +414,7 @@ For detailed monitoring setup, see [monitoring/README.md](monitoring/README.md).
 ### Using Scripts
 
 #### Startup Scripts
+
 ```bash
 # Direct access (development)
 ./scripts/start-direct.sh -d                    # Start on port 5678
@@ -403,6 +436,7 @@ For detailed monitoring setup, see [monitoring/README.md](monitoring/README.md).
 ```
 
 #### Management Scripts
+
 ```bash
 # Create backup
 ./scripts/backup.sh
@@ -451,7 +485,7 @@ make start
 # Start with Nginx
 make start-nginx
 
-# Start with Traefik  
+# Start with Traefik
 make start-traefik
 
 # Stop all services
@@ -472,6 +506,7 @@ make reset
 ### Service Health
 
 Check service health:
+
 ```bash
 docker compose ps
 ```
@@ -479,11 +514,13 @@ docker compose ps
 ### Logs
 
 View logs for all services:
+
 ```bash
 docker compose logs -f
 ```
 
 View logs for specific service:
+
 ```bash
 docker compose logs -f n8n
 docker compose logs -f postgres
@@ -491,15 +528,17 @@ docker compose logs -f redis
 ```
 
 ### Nginx Logs
+
 ```bash
 # Access logs
 tail -f /var/log/nginx/access.log
 
-# Error logs  
+# Error logs
 tail -f /var/log/nginx/error.log
 ```
 
 ### Traefik Logs
+
 ```bash
 # Traefik container logs
 docker logs n8n-traefik -f
@@ -535,17 +574,20 @@ tail -f traefik/logs/access.log
 ### Automatic Backups
 
 The backup script creates comprehensive backups including:
+
 - N8N workflows and credentials
 - PostgreSQL database dump
 - Redis data
 - Configuration files
 
 ### Manual Backup
+
 ```bash
 ./scripts/backup.sh
 ```
 
 ### Restore Options
+
 ```bash
 # List backups
 ./scripts/restore.sh --list
@@ -581,6 +623,7 @@ docker compose logs -f traefik    # Traefik proxy (if running)
 ### Common Issues
 
 #### Services won't start
+
 ```bash
 # Check Docker daemon
 sudo systemctl status docker
@@ -594,6 +637,7 @@ docker compose up -d
 ```
 
 #### Permission issues
+
 ```bash
 # Fix data directory permissions
 sudo chown -R 1000:1000 data/
@@ -601,6 +645,7 @@ chmod -R 755 data/
 ```
 
 #### Database connection issues
+
 ```bash
 # Check PostgreSQL logs
 docker compose logs postgres
@@ -611,6 +656,7 @@ docker compose up -d
 ```
 
 #### SSL certificate issues (Traefik)
+
 ```bash
 # Check Traefik logs
 docker logs n8n-traefik
@@ -627,6 +673,7 @@ ls -la data/traefik/acme/acme.json
 #### For high-load environments:
 
 1. **Increase PostgreSQL resources**:
+
    ```yaml
    # In docker-compose.yml, postgres service
    deploy:
@@ -638,6 +685,7 @@ ls -la data/traefik/acme/acme.json
    ```
 
 2. **Increase Redis memory**:
+
    ```bash
    # In docker-compose.yml, redis command
    --maxmemory 512mb
@@ -694,6 +742,42 @@ TRAEFIK_API_INSECURE=false
 - Add tests for new features
 - Update documentation for any changes
 - Ensure all services start successfully after changes
+- **Shell Script Quality**: All shell scripts must pass ShellCheck validation (see [ShellCheck Validation Guide](docs/development/shellcheck-validation.md))
+- **Pre-commit Hooks**: ShellCheck validation runs automatically before commits
+
+### Shell Script Quality Standards
+
+This project maintains high shell script quality standards using ShellCheck validation:
+
+#### ✅ ShellCheck Compliance
+
+- **All shell scripts** pass ShellCheck validation with zero errors
+- **Source directives** are properly configured for external file validation
+- **Variable usage** follows best practices with proper exports and documentation
+- **Syntax validation** ensures scripts execute correctly across environments
+
+#### 🔧 Validation Tools
+
+```bash
+# Run ShellCheck validation on all scripts
+./scripts/validate_syntax.sh
+
+# Check specific script
+shellcheck scripts/start-nginx.sh
+
+# Run comprehensive validation (includes syntax and execution tests)
+./tests/run_tests.sh
+```
+
+#### 📋 Pre-commit Validation
+
+ShellCheck validation runs automatically before commits to prevent syntax errors:
+
+- **Automatic validation** of modified shell scripts
+- **Fast failure** on syntax errors with clear error messages
+- **Source path resolution** validation for proper script dependencies
+
+For detailed shell script development guidelines, see [docs/development/shellcheck-validation.md](docs/development/shellcheck-validation.md).
 
 ## 📄 License
 
@@ -739,6 +823,7 @@ make autoupdate-status
 ### Update Methods
 
 #### 1. Watchtower Method (Real-time)
+
 ```bash
 # Start with automatic updates
 make start-with-autoupdate
@@ -748,6 +833,7 @@ make autoupdate-watchtower
 ```
 
 #### 2. Scheduled Updates (Cron-based)
+
 ```bash
 # Install scheduled updates (runs daily at 2 AM)
 make autoupdate-schedule
@@ -757,6 +843,7 @@ make autoupdate-check
 ```
 
 #### 3. Manual Updates
+
 ```bash
 # Perform manual update with backup
 make autoupdate-update
@@ -791,11 +878,13 @@ For detailed autoupdate documentation, see [docs/autoupdate.md](docs/autoupdate.
 ## 🔄 Auto-Start Options
 
 ### Option 1: Manual Start (Simplest)
+
 ```bash
 make start-nginx    # Start N8N with Nginx
 ```
 
 ### Option 2: Systemd Service (Auto-start on boot)
+
 ```bash
 # Install and enable auto-start
 make systemd-install-nginx
@@ -808,11 +897,14 @@ sudo systemctl status n8n-nginx.service   # Check status
 ```
 
 ### Option 3: Desktop Shortcut
+
 - Double-click the **N8N-R8** icon on your desktop
 - Terminal will open and start N8N automatically
 
 ### Option 4: Terminal Aliases
+
 After restarting your terminal, use these shortcuts:
+
 ```bash
 n8n-start     # Start N8N
 n8n-stop      # Stop N8N
@@ -855,9 +947,9 @@ SOFTWARE.
 ### N8N License Information
 
 > 📊 **N8N Community vs Enterprise**
-> 
-> This project uses **N8N Community Edition** by default, which is free for most use cases under the [Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md). 
-> 
+>
+> This project uses **N8N Community Edition** by default, which is free for most use cases under the [Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md).
+>
 > **N8N Enterprise** features (LDAP/SSO, advanced logging, priority support) require a commercial license.
 
 **N8N** itself is subject to its own licensing terms:
@@ -870,11 +962,13 @@ SOFTWARE.
 To use N8N with a license key (for Cloud/Enterprise features):
 
 1. **Add your license key** to the `.env` file:
+
    ```bash
    N8N_LICENSE_ACTIVATION_KEY=your-license-key-here
    ```
 
 2. **Restart the services** to apply the license:
+
    ```bash
    make restart
    ```
@@ -883,17 +977,17 @@ To use N8N with a license key (for Cloud/Enterprise features):
 
 #### N8N Community vs Licensed Features
 
-| Feature | Community | Licensed |
-|---------|-----------|----------|
-| Workflow Automation | ✅ | ✅ |
-| Basic Nodes | ✅ | ✅ |
-| Database Integration | ✅ | ✅ |
-| API Access | ✅ | ✅ |
-| Advanced Logging | ❌ | ✅ |
-| LDAP/SSO Authentication | ❌ | ✅ |
-| Advanced Permissions | ❌ | ✅ |
-| Priority Support | ❌ | ✅ |
-| Advanced Monitoring | ❌ | ✅ |
+| Feature                 | Community | Licensed |
+| ----------------------- | --------- | -------- |
+| Workflow Automation     | ✅        | ✅       |
+| Basic Nodes             | ✅        | ✅       |
+| Database Integration    | ✅        | ✅       |
+| API Access              | ✅        | ✅       |
+| Advanced Logging        | ❌        | ✅       |
+| LDAP/SSO Authentication | ❌        | ✅       |
+| Advanced Permissions    | ❌        | ✅       |
+| Priority Support        | ❌        | ✅       |
+| Advanced Monitoring     | ❌        | ✅       |
 
 ### Third-Party Components
 

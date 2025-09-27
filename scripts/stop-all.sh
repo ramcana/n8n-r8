@@ -253,7 +253,9 @@ show_stop_summary() {
     remaining_containers=$(docker ps --format "{{.Names}}" | grep -E "^n8n" || true)
     if [[ -n "$remaining_containers" ]]; then
         warning "Some containers may still be running:"
-        echo "$remaining_containers" | sed 's/^/    /'
+        while IFS= read -r line; do
+            echo "    $line"
+        done <<< "$remaining_containers"
     else
         log "All N8N-R8 services have been stopped successfully"
     fi
@@ -262,13 +264,17 @@ show_stop_summary() {
     remaining_networks=$(docker network ls --format "{{.Name}}" | grep -E "n8n" || true)
     if [[ -n "$remaining_networks" ]]; then
         info "Remaining networks:"
-        echo "$remaining_networks" | sed 's/^/    /'
+        while IFS= read -r line; do
+            echo "    $line"
+        done <<< "$remaining_networks"
     fi
     local remaining_volumes
     remaining_volumes=$(docker volume ls --format "{{.Name}}" | grep -E "n8n" || true)
     if [[ -n "$remaining_volumes" ]]; then
         info "Remaining volumes:"
-        echo "$remaining_volumes" | sed 's/^/    /'
+        while IFS= read -r line; do
+            echo "    $line"
+        done <<< "$remaining_volumes"
     fi
 }
 # Confirmation prompt

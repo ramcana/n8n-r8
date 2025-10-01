@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     # Conditional port exposure - only expose when not using reverse proxy
     ports:
-      - "${N8N_PORT:-5678}:5678"
+      - "127.0.0.1:${N8N_PORT:-9678}:5678"
     # Note: profiles removed to allow nginx/traefik overrides to work properly
     # Port exposure will be overridden by proxy configurations
     # Uncomment for M1 Macs if needed

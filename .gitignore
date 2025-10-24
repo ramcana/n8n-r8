@@ -311,6 +311,38 @@ local-metrics/
 .idea/workspace.xml
 .idea/tasks.xml
 
+# Development and temporary documentation
+*-IMPLEMENTATION-PLAN.md
+*-DEBUG.md
+*-SETUP.md
+*-NOTES.md
+*-TODO.md
+*-TEMP.md
+verify-*.md
+debug-*.md
+temp-*.md
+notes-*.md
+scratch-*.md
+draft-*.md
+
+# Development summaries and logs
+*-SUMMARY.md
+*-IMPLEMENTED.md
+*-FIX-SUMMARY.md
+*-LOG.md
+*-REPORT.md
+implementation-*.md
+summary-*.md
+log-*.md
+
+# Personal and local documentation
+personal-*.md
+local-*.md
+my-*.md
+user-*.md
+custom-*.md
+dev-*.md
+
 # ===========================================
 # Python (if using Python scripts)
 # ===========================================

@@ -135,12 +135,18 @@ jobs:
           ls -la nodes/package-lock.json
           cd nodes
           echo "Changed to directory: $(pwd)"
-          npm ci
+          # Use npm install instead of npm ci to handle package.json changes
+          npm install --no-audit --no-fund
 
       - name: Run npm audit
         run: |
           cd nodes
-          npm audit --audit-level=moderate || echo "npm audit completed with findings"
+          echo "Running npm audit..."
+          npm audit --audit-level=moderate || {
+            echo "npm audit found vulnerabilities, but continuing..."
+            npm audit --audit-level=moderate --json > audit-results.json || true
+            echo "Audit results saved to audit-results.json"
+          }
 
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
@@ -149,6 +155,14 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high --file=nodes/package.json
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-results
+          path: nodes/audit-results.json
+          retention-days: 7
 
   configuration-scan:
     name: Configuration Security Scan

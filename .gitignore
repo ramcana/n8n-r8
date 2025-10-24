@@ -224,6 +224,93 @@ docker-compose.tunnel.yml
 # Development artifacts
 .actrc
 
+# Docker images and custom deployment artifacts
+*.tar
+*.tar.gz
+*.tar.bz2
+docker-images/
+exported-images/
+custom-images/
+
+# Docker build contexts and custom Dockerfiles
+Dockerfile.custom
+Dockerfile.local
+Dockerfile.dev
+Dockerfile.security
+.dockerignore.local
+
+# Container runtime artifacts
+docker-data/
+container-logs/
+runtime-data/
+
+# Custom deployment configurations
+docker-compose.custom.yml
+docker-compose.local.yml
+docker-compose.dev.yml
+docker-compose.personal.yml
+docker-compose.override.local.yml
+docker-compose.security-override.yml
+docker-compose.*.local.yml
+docker-compose.*.custom.yml
+
+# Kubernetes custom manifests
+k8s-custom/
+kubernetes-local/
+helm-custom/
+custom-charts/
+
+# Custom scripts and automation
+custom-scripts/
+personal-scripts/
+local-automation/
+
+# Build artifacts and custom builds
+build-output/
+custom-builds/
+dist-custom/
+artifacts/
+
+# Custom extensions and integrations
+extensions/
+integrations/
+plugins/
+addons/
+
+# User-specific customizations
+user-config/
+personal-config/
+my-setup/
+local-setup/
+
+# Custom data and volumes
+custom-data/
+user-data/
+personal-data/
+local-volumes/
+
+# Development and testing customizations
+dev-config/
+test-config/
+staging-config/
+experimental/
+
+# Custom SSL certificates and keys (in addition to existing entries)
+custom-ssl/
+personal-certs/
+local-certs/
+
+# Custom monitoring and logging
+custom-monitoring/
+personal-dashboards/
+local-metrics/
+
+# IDE and editor customizations
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+.idea/tasks.xml
+
 # ===========================================
 # Python (if using Python scripts)
 # ===========================================

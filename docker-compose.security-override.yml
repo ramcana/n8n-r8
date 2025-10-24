@@ -1,0 +1,21 @@
+# Security Override Docker Compose
+# Use this to apply security fixes while waiting for upstream updates
+
+version: '3.8'
+
+services:
+  n8n:
+    # Force rebuild with security overrides
+    build:
+      context: .
+      dockerfile: Dockerfile.security
+    # Override the base image if needed
+    # image: n8nio/n8n:latest
+    environment:
+      # Add any security-related environment variables
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=true
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true
+    volumes:
+      # Mount custom nodes with security fixes
+      - ./nodes/dist:/home/node/.n8n/custom:ro
+      - ./nodes/node_modules:/home/node/.n8n/node_modules:ro

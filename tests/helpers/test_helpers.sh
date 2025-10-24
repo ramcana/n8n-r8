@@ -2,58 +2,73 @@
 
 # Test Helper Functions for N8N-R8 Testing Framework
 # Provides common testing utilities and assertion functions
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
+
 # Test counters
 TESTS_RUN=0
 TESTS_PASSED=0
 TESTS_FAILED=0
 TESTS_SKIPPED=0
-# Test configuration
-TEST_TIMEOUT=${TEST_TIMEOUT:-300}
-TEST_VERBOSE=${TEST_VERBOSE:-false}
-TEST_DEBUG=${TEST_DEBUG:-false}
+TEST_TIMEOUT=${TEST_TIMEOUT:-30}
+
 # Logging functions
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
+
 log_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
+
 log_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
+
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
+
 log_debug() {
     if [[ "$TEST_DEBUG" == "true" ]]; then
         echo -e "${YELLOW}[DEBUG]${NC} $1"
     fi
+}
+
 # Test execution functions
 run_test_suite() {
     local test_file
     test_file=$(basename "$0")
     log_info "Running test suite: $test_file"
-    
+    run_tests
+}
+
+run_tests() {
     # Setup
     if declare -f setup > /dev/null; then
         log_debug "Running setup"
         setup
+    fi
+
     # Run all test functions
     for func in $(declare -F | grep "test_" | awk '{print $3}'); do
         run_single_test "$func"
     done
+
     # Teardown
     if declare -f teardown > /dev/null; then
         log_debug "Running teardown"
         teardown
+    fi
+
     # Report results
     print_test_summary
+}
 run_single_test() {
     local test_name="$1"
     TESTS_RUN=$((TESTS_RUN + 1))
@@ -65,10 +80,13 @@ run_single_test() {
     else
         TESTS_FAILED=$((TESTS_FAILED + 1))
         log_error "✗ $test_name"
+    fi
+}
 skip_test() {
     local reason="$1"
     TESTS_SKIPPED=$((TESTS_SKIPPED + 1))
     log_warning "⊘ Skipped: $reason"
+}
 print_test_summary() {
     echo
     echo "=================================="
@@ -81,6 +99,7 @@ print_test_summary() {
         exit 1
     fi
 }
+
 # Assertion functions
 assert_equals() {
     local expected="$1"
@@ -89,6 +108,7 @@ assert_equals() {
     if [[ "$expected" == "$actual" ]]; then
         log_debug "✓ Assertion passed: $message"
         return 0
+    else
         log_error "✗ Assertion failed: $message"
         log_error "  Expected: '$expected'"
         log_error "  Actual:   '$actual'"
@@ -222,7 +242,6 @@ wait_for_service() {
             log_debug "Service '$service' is ready"
             return 0
         fi
-        
         sleep "$interval"
         elapsed=$((elapsed + interval))
     done
@@ -252,6 +271,7 @@ create_temp_dir() {
     local temp_dir
     temp_dir=$(mktemp -d -t "${prefix}XXXXXX")
     echo "$temp_dir"
+}
 cleanup_temp_dir() {
     local temp_dir="$1"
     if [[ -n "$temp_dir" && -d "$temp_dir" ]]; then
@@ -289,6 +309,7 @@ measure_execution_time() {
     duration=$(echo "$end_time - $start_time" | bc)
     echo "$duration"
     return $exit_code
+}
 assert_execution_time_under() {
     local command="$1"
     local max_time="$2"

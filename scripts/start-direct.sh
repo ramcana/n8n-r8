@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# N8N Direct Access Start Script
 # This script starts N8N with direct port access (development mode)
 set -euo pipefail
 # Configuration
@@ -18,10 +17,15 @@ log() {
 }
 error() {
     echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
+}
+
 warning() {
     echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
+}
+
 info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $1"
+}
 # Usage function
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -39,6 +43,7 @@ usage() {
     echo "  $0 --port 8080 -d   # Start on port 8080 in background"
     echo "  $0 --build -d       # Build and start in background"
     exit 1
+}
 # Check prerequisites
 check_prerequisites() {
     log "Checking prerequisites..."
@@ -67,7 +72,7 @@ validate_environment() {
     log "Validating environment configuration..."
     # Load environment variables
     if [[ -f "$PROJECT_DIR/.env" ]]; then
-        # shellcheck source=/dev/null
+        # shellcheck disable=SC1091
         source "$PROJECT_DIR/.env"
     else
         error ".env file not found"
@@ -89,14 +94,10 @@ validate_environment() {
             missing_vars+=("$var")
         fi
     done
-    if [[ ${#missing_vars[@]} -gt 0 ]]; then
-        error "Missing required environment variables:"
-        for var in "${missing_vars[@]}"; do
-            echo "  - $var"
-        done
-        echo ""
-        echo "Please update your .env file with the missing variables."
-        exit 1
+    if [[ "${#missing_vars[@]}" -gt 0 ]]; then
+        error "Required environment variables are missing:"
+        printf '%s\n' "${missing_vars[@]}"
+        return 1
     fi
     
     # Validate encryption key length
@@ -133,12 +134,14 @@ create_directories() {
     # Create log directories
     mkdir -p "$PROJECT_DIR/logs"
     log "Directories created"
+}
 # Set proper permissions
 set_permissions() {
     log "Setting proper permissions..."
     # Set permissions for data directories
     chmod -R 755 "$PROJECT_DIR/data" 2>/dev/null || true
     log "Permissions set"
+}
 # Check for port conflicts
 check_port_conflicts() {
     local port="$1"
@@ -154,7 +157,10 @@ check_port_conflicts() {
         echo "1. Stop the service using port $port, or"
         echo "2. Use a different port with --port option, or"
         echo "3. Use a proxy configuration instead"
+        exit 1
+    fi
     log "Port $port is available"
+}
 # Check if services are already running
 check_running_services() {
     log "Checking for running services..."
@@ -173,6 +179,9 @@ check_running_services() {
         else
             log "Keeping existing services running"
             exit 0
+        fi
+    fi
+}
 # Start services
 start_services() {
     local detach="$1"
@@ -186,16 +195,20 @@ start_services() {
     # Add build flag if requested
     if [[ "$build" == "true" ]]; then
         compose_args+=("--build")
+    fi
     # Add force recreate flag if requested
     if [[ "$force_recreate" == "true" ]]; then
         compose_args+=("--force-recreate")
+    fi
     # Add no deps flag if requested
     if [[ "$no_deps" == "true" ]]; then
         compose_args+=("--no-deps")
+    fi
     # Set custom port if specified
     if [[ -n "$custom_port" ]]; then
         env_args+=("N8N_PORT=$custom_port")
         log "Using custom port: $custom_port"
+    fi
     # Create temporary compose file with port exposure
     local temp_compose="$PROJECT_DIR/docker-compose.direct.yml"
     create_direct_compose_override "$temp_compose" "${custom_port:-5678}"
@@ -214,6 +227,9 @@ start_services() {
         log "Starting services with logs (Press Ctrl+C to stop)..."
         env "${env_args[@]}" docker compose -f "$PROJECT_DIR/docker-compose.yml" -f "$temp_compose" up "${compose_args[@]}"
         # Cleanup temporary file on exit
+        rm -f "$temp_compose"
+    fi
+}
 # Create direct access compose override
 create_direct_compose_override() {
     local temp_file="$1"
@@ -232,6 +248,8 @@ services:
     labels:
       - "com.docker.compose.service=n8n-direct"
 EOF
+}
+
 # Show service status
 show_service_status() {
     local compose_file="$1"
@@ -273,14 +291,17 @@ show_service_status() {
 }
 # Show access information
 show_access_info() {
+    local port="$1"
     log "Access Information:"
     # Load environment variables for display
+    # shellcheck disable=SC1091
     source "$PROJECT_DIR/.env" 2>/dev/null || true
     echo "  🌐 N8N Web Interface:"
     echo "    URL: http://localhost:$port"
     echo "    Health Check: http://localhost:$port/healthz"
     if [[ "${N8N_BASIC_AUTH_ACTIVE:-true}" == "true" ]]; then
         echo "    Login: ${N8N_BASIC_AUTH_USER:-admin} / ${N8N_BASIC_AUTH_PASSWORD:-changeme123!}"
+    fi
     echo "  📊 Service URLs:"
     echo "    PostgreSQL: localhost:5432 (internal only)"
     echo "    Redis: localhost:6379 (internal only)"
@@ -298,6 +319,7 @@ show_access_info() {
     echo "  - No reverse proxy or SSL termination"
     echo "  - Suitable for development and testing only"
     echo "  - For production, use nginx or traefik proxy scripts"
+}
 # Perform health checks
 perform_health_checks() {
     local max_attempts=30
@@ -308,12 +330,17 @@ perform_health_checks() {
         if curl -s -f --max-time 5 "http://localhost:$port/healthz" >/dev/null 2>&1; then
             log "N8N is ready and responding"
             return 0
+        fi
         attempt=$((attempt + 1))
         echo -n "."
         sleep 2
+    done
+    
+    log "N8N health check failed after $max_attempts attempts"
     warning "N8N health check timed out after $((max_attempts * 2)) seconds"
     warning "Service may still be starting up. Check logs with: docker compose logs -f n8n"
     return 1
+}
 # Main function
 main() {
     local detach=false
@@ -349,9 +376,11 @@ main() {
                 ;;
             -*)
                 error "Unknown option: $1"
+                exit 1
                 ;;
             *)
                 error "Unknown argument: $1"
+                exit 1
                 ;;
         esac
     done

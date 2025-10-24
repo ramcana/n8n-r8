@@ -144,7 +144,7 @@ start_basic_monitoring() {
     
     if [[ "$detach" == "true" ]]; then
         log "Starting monitoring daemon..."
-        nohup "$MONITORING_DIR/scripts/monitor.sh" monitor -d > "$MONITORING_DIR/logs/monitor-daemon.log" 2>&1 & 2>/dev/null || true
+        nohup "$MONITORING_DIR/scripts/monitor.sh" monitor -d > "$MONITORING_DIR/logs/monitor-daemon.log" 2>&1 || true &
         log "Basic monitoring started in background"
         show_basic_monitoring_info
     else

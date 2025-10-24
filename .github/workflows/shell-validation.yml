@@ -1,0 +1,30 @@
+name: Shell Script Validation
+
+on:
+  push:
+    paths:
+      - '**.sh'
+  pull_request:
+    paths:
+      - '**.sh'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          if command -v sudo >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y shellcheck
+          else
+            apt-get update
+            apt-get install -y shellcheck
+          fi
+
+      - name: Run shellcheck
+        run: |
+          find . -type f -name "*.sh" -exec shellcheck {} \;

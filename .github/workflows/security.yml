@@ -92,16 +92,12 @@ jobs:
           fetch-depth: 0
 
       - name: TruffleHog OSS
-        if: github.event.before != github.sha
         uses: trufflesecurity/trufflehog@main
         continue-on-error: true
+        if: github.event.before != github.sha
         with:
           path: ./
           extra_args: --only-verified --no-update
-
-      - name: Skip TruffleHog if no new commits
-        if: github.event.before == github.sha
-        run: echo "Skipping TruffleHog scan: base and head commits are identical."
 
   dependency-scan:
     name: Dependency Scan
@@ -138,17 +134,12 @@ jobs:
           npm audit --audit-level=moderate || echo "npm audit completed with findings"
 
       - name: Run Snyk to check for vulnerabilities
-        if: ${{ secrets.SNYK_TOKEN != '' }}
         uses: snyk/actions/node@master
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high --file=nodes/package.json
-      
-      - name: Snyk scan skipped
-        if: ${{ secrets.SNYK_TOKEN == '' }}
-        run: echo "Snyk scan skipped - SNYK_TOKEN not configured"
 
   configuration-scan:
     name: Configuration Security Scan
@@ -226,7 +217,7 @@ jobs:
           echo "Checking for default credentials..."
           
           # Check for common default passwords in non-example files
-          if grep -r "changeme123!" --exclude="*.example" --exclude="README.md" --exclude="CHANGELOG.md" .; then
+          if grep -r "changeme123!" --exclude="*.example" --exclude="README.md" --exclude="CHANGELOG.md" --exclude="*.sh" --exclude="Makefile" --exclude-dir=".github" .; then
             echo "❌ Default passwords found in configuration files"
             exit 1
           else

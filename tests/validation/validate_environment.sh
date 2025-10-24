@@ -124,7 +124,8 @@ test_cpu_architecture() {
 test_environment_configuration() {
     log_info "Testing environment configuration"
     
-    local env_file="$(dirname "$SCRIPT_DIR")/.env"
+    local env_file
+    env_file="$(dirname "$SCRIPT_DIR")/.env"
     if [[ -f "$env_file" ]]; then
         log_success "Environment file exists: $env_file"
         

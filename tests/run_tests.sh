@@ -2,12 +2,11 @@
 
 # N8N-R8 Test Runner
 # Comprehensive test execution script for all test categories
-
+# shellcheck disable=SC2317
 set -euo pipefail
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Source test helpers
 # shellcheck source=/dev/null

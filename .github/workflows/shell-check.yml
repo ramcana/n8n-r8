@@ -1,0 +1,49 @@
+name: Shell Script Syntax Check
+
+on:
+  push:
+    paths:
+      - '**.sh'
+  pull_request:
+    paths:
+      - '**.sh'
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run shell script checks
+        run: |
+          echo "=== Running ShellCheck on shell scripts ==="
+          find . -type f -name "*.sh" -print0 | while IFS= read -r -d '' script; do
+            echo "Checking $script..."
+            if shellcheck -x "$script"; then
+              echo "✓ $script: PASSED"
+            else
+              echo "✗ $script: FAILED"
+              exit 1
+            fi
+            echo
+          done
+
+      - name: Run bash -n syntax check
+        run: |
+          echo "=== Running bash syntax check on shell scripts ==="
+          find . -type f -name "*.sh" -print0 | while IFS= read -r -d '' script; do
+            echo "Checking $script..."
+            if bash -n "$script"; then
+              echo "✓ $script: PASSED"
+            else
+              echo "✗ $script: FAILED"
+              exit 1
+            fi
+            echo
+          done

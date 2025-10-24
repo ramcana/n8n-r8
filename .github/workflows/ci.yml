@@ -148,6 +148,8 @@ jobs:
           # Test health endpoints
           curl -f http://localhost:5678/healthz || exit 1
           docker compose down -v
+          # Cleanup test environment
+          rm -f .env
 
       - name: Test Nginx deployment
         if: matrix.deployment == 'nginx'
@@ -158,6 +160,8 @@ jobs:
           # Test Nginx health
           curl -f http://localhost/health || exit 1
           docker compose -f docker-compose.yml -f docker-compose.nginx.yml down -v
+          # Cleanup test environment
+          rm -f .env
 
       - name: Test Traefik deployment
         if: matrix.deployment == 'traefik'
@@ -284,6 +288,7 @@ jobs:
         if: always()
         run: |
           docker compose down -v
+          rm -f .env
 
   release:
     name: Create Release

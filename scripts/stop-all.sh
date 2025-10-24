@@ -92,13 +92,13 @@ show_running_services() {
     local compose_files=(
         "docker-compose.yml"
         "docker-compose.yml -f docker-compose.nginx.yml"
-        "docker-compose.yml -f docker-compose.traefik.yml"
+        "docker-compose.yml -f docker-compose.traefik.yml" 
         "docker-compose.yml -f docker-compose.monitoring.yml"
     )
     local found_services=false
     for compose_cmd in "${compose_files[@]}"; do
         local services
-        services=$(docker compose -f $compose_cmd ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | tail -n +2 || true)
+        services=$(docker compose -f "$compose_cmd" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | tail -n +2 || true)
         if [[ -n "$services" ]]; then
             found_services=true
             echo "$services"
@@ -114,6 +114,8 @@ show_running_services() {
     if [[ "$found_services" == "false" ]]; then
         info "No N8N-R8 services are currently running"
     fi
+    # Remove duplicates
+    printf '%s\n' "${configurations[@]}" | sort -u
 }
 # Stop Docker Compose configurations
 stop_compose_configurations() {
@@ -132,7 +134,7 @@ stop_compose_configurations() {
         IFS=':' read -r compose_files description <<< "$config_info"
         
         # Check if this configuration has running services
-        if docker compose -f $compose_files ps -q 2>/dev/null | grep -q .; then
+        if docker compose -f "$compose_files" ps -q 2>/dev/null | grep -q .; then
             info "Stopping $description..."
             
             local compose_args=()
@@ -148,11 +150,12 @@ stop_compose_configurations() {
             # Stop services
             if [[ "$kill_containers" == "true" ]]; then
                 # Kill containers immediately
-                docker compose -f $compose_files kill 2>/dev/null || true
-                docker compose -f $compose_files down "${compose_args[@]}" 2>/dev/null || true
+                docker compose -f "$compose_files" kill 2>/dev/null || true
+                docker compose -f "$compose_files" down "${compose_args[@]}" 2>/dev/null || true
             else
                 # Graceful shutdown
-                docker compose -f $compose_files down "${compose_args[@]}" 2>/dev/null || true
+                docker compose -f "$compose_files" stop --timeout "$timeout" 2>/dev/null || true
+                docker compose -f "$compose_files" down "${compose_args[@]}" 2>/dev/null || true
             fi
             log "$description stopped"
         fi
@@ -164,7 +167,6 @@ stop_individual_containers() {
     local timeout="$2"
     log "Checking for individual N8N containers..."
     # Find all containers with n8n in the name
-    local n8n_containers
     n8n_containers=$(docker ps -q --filter "name=n8n" 2>/dev/null || true)
     if [[ -n "$n8n_containers" ]]; then
         info "Found individual N8N containers, stopping them..."
@@ -179,6 +181,7 @@ stop_individual_containers() {
         echo "$n8n_containers" | xargs -r docker rm -f 2>/dev/null || true
         log "Individual containers stopped and removed"
     fi
+}
 # Stop monitoring processes
 stop_monitoring_processes() {
     log "Stopping monitoring processes..."
@@ -274,15 +277,16 @@ confirm_stop() {
     local configurations=("$@")
     if [[ "$force" == "true" ]]; then
         return 0
-    fi
-    warning "This will stop all N8N-R8 services and configurations:"
-    for config in "${configurations[@]:1}"; do
-        echo "  - $config"
-    done
-    read -p "Are you sure you want to continue? (y/N): " -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        log "Stop operation cancelled by user"
-        exit 0
+    else
+        warning "This will stop all N8N-R8 services and configurations:"
+        for config in "${configurations[@]:1}"; do
+            echo "  - $config"
+        done
+        read -p "Are you sure you want to continue? (y/N): " -r
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log "Stop operation cancelled by user"
+            exit 0
+        fi
     fi
 }
 # Main function
@@ -320,11 +324,11 @@ main() {
                 ;;
             -*)
                 error "Unknown option: $1"
-                usage
+                shift
                 ;;
             *)
                 error "Unknown argument: $1"
-                usage
+                shift
                 ;;
         esac
     done
@@ -347,12 +351,9 @@ main() {
     local configurations
     mapfile -t configurations < <(detect_running_configurations)
     if [[ ${#configurations[@]} -eq 0 ]]; then
-        info "No N8N-R8 services are currently running"
         # Check for monitoring processes even if no Docker services
         stop_monitoring_processes
         cleanup_temporary_files
-        log "All N8N-R8 services have been stopped"
-        exit 0
     fi
     # Show current services
     show_running_services || true

@@ -1,0 +1,28 @@
+# ShellCheck configuration for n8n-r8 project
+# This file configures ShellCheck behavior for consistent validation across the project
+
+# Exclude directories that don't contain shell scripts we want to validate
+exclude-dir=node_modules
+exclude-dir=data
+exclude-dir=.git
+exclude-dir=logs/watchtower
+
+# Enable external source following to resolve source directives
+external-sources=true
+
+# Set source path for resolving relative includes
+source-path=SCRIPTDIR
+source-path=tests
+source-path=tests/helpers
+source-path=scripts
+
+# Disable specific checks that are not relevant for this project
+# SC1008: This shebang was unrecognized (we use various shells)
+# SC2312: Consider invoking this command separately (acceptable for simple cases)
+disable=SC1008,SC2312
+
+# Set shell dialect (bash is primary shell used in project)
+shell=bash
+
+# Enable all severity levels for comprehensive checking
+severity=style

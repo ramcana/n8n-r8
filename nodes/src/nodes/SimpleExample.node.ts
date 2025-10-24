@@ -1,4 +1,5 @@
 import {
+	IDataObject,
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
@@ -44,7 +45,7 @@ export class SimpleExample implements INodeType {
 			const message = this.getNodeParameter('message', i) as string;
 			const addTimestamp = this.getNodeParameter('addTimestamp', i) as boolean;
 
-			const outputData: any = {
+			const outputData: IDataObject = {
 				message,
 				originalData: items[i].json,
 			};

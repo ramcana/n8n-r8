@@ -158,7 +158,7 @@ show_summary() {
     log "Reset Summary:"
     echo "  Reset Type: $reset_type"
     echo "  Project Directory: $PROJECT_DIR"
-    echo "  Data Directories: $(ls -la "$PROJECT_DIR/data" 2>/dev/null | wc -l) items"
+    echo "  Data Directories: $(find "$PROJECT_DIR/data" -maxdepth 1 -mindepth 1 2>/dev/null | wc -l) items"
     echo "  Docker Containers: $(docker ps -aq --filter "name=n8n" 2>/dev/null | wc -l) remaining"
     echo "  Docker Networks: $(docker network ls --filter "name=n8n" -q 2>/dev/null | wc -l) remaining"
     echo "  Docker Volumes: $(docker volume ls --filter "name=n8n" -q 2>/dev/null | wc -l) remaining"

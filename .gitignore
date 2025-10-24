@@ -137,6 +137,39 @@ tramp
 *.iws
 
 # ===========================================
+# Development Tools and AI Assistants
+# ===========================================
+
+# Kiro IDE files and directories
+.kiro/
+*.kiro
+.kiro-*
+kiro-*
+
+# Cursor IDE
+.cursor/
+*.cursor
+
+# GitHub Copilot
+.copilot/
+
+# Other AI coding assistants
+.codeium/
+.tabnine/
+.aicode/
+
+# Development workspace files
+.workspace/
+*.workspace
+.project/
+
+# Development logs and debug files
+debug.log
+debug-*.log
+dev-*.log
+development.log
+
+# ===========================================
 # Docker Related
 # ===========================================
 
@@ -166,6 +199,30 @@ nodes/node_modules/
 nodes/coverage/
 nodes/*.tgz
 nodes/tsconfig.tsbuildinfo
+
+# Custom nodes and development files
+tunnel-manager/
+config/
+verify-comfyui-nodes.md
+simple-test-workflow.json
+
+# Tunnel and development scripts
+scripts/cleanup-n8n.sh
+scripts/start-tunnel.sh
+scripts/stop-tunnel.sh
+scripts/tunnel-status.sh
+
+# Development documentation
+HTTPS-TUNNELING-IMPLEMENTATION-PLAN.md
+NGINX-DEPLOYMENT-DEBUG.md
+VOLUME_MOUNT_SETUP.md
+docs/PORT-CONFLICT-RESOLUTION.md
+
+# Tunnel configuration
+docker-compose.tunnel.yml
+
+# Development artifacts
+.actrc
 
 # ===========================================
 # Python (if using Python scripts)
@@ -234,6 +291,27 @@ coverage.xml
 *.cover
 .hypothesis/
 
+# Test artifacts and reports
+test-results/
+test-reports/
+coverage-reports/
+*.test.log
+test-*.log
+junit.xml
+test-output/
+
+# Shell script testing
+tests/reports/
+tests/tmp/
+tests/temp/
+tests/*.tmp
+tests/*.temp
+
+# Performance testing
+perf-test-results/
+benchmark-results/
+load-test-reports/
+
 # ===========================================
 # Monitoring and Metrics
 # ===========================================
@@ -279,8 +357,106 @@ kustomization.yaml
 .vault_pass
 
 # ===========================================
+# Operational and Runtime Files
+# ===========================================
+
+# Process IDs and lock files
+*.pid
+*.lock
+.lock
+pids/
+
+# Runtime directories
+runtime/
+run/
+var/run/
+
+# Cache directories
+.cache/
+cache/
+*.cache
+
+# Session files
+sessions/
+*.session
+
+# Temporary operational files
+.tmp/
+.temp/
+operational-*.log
+runtime-*.log
+
+# Database files (if using local SQLite, etc.)
+*.db
+*.sqlite
+*.sqlite3
+
+# ===========================================
+# CI/CD and Automation
+# ===========================================
+
+# GitHub Actions artifacts (keep workflows)
+.github/artifacts/
+.github/cache/
+
+# CI/CD temporary files
+ci-*.log
+cd-*.log
+pipeline-*.log
+build-*.log
+deploy-*.log
+
+# Automation scripts output
+automation-output/
+script-output/
+command-output/
+
+# ===========================================
+# Security and Secrets Management
+# ===========================================
+
+# Additional secret files
+secrets/
+.secrets/
+*.secret
+*.secrets
+
+# GPG keys
+*.gpg
+*.asc
+secring.*
+pubring.*
+
+# SSH keys (in case someone accidentally puts them here)
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.pem.key
+
+# ===========================================
 # Miscellaneous
 # ===========================================
 .env.example.local
 .local
 *.local
+
+# User-specific files
+user-*
+personal-*
+my-*
+
+# Experimental files
+experiment-*
+test-*
+demo-*
+sample-*
+example-*
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z

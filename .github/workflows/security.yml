@@ -30,7 +30,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'  # Don't fail the build on vulnerabilities
+          exit-code: '1'  # Fail the build on HIGH/CRITICAL vulnerabilities
           vuln-type: 'os,library'
           scanners: 'vuln,secret,misconfig'
 
@@ -50,13 +50,22 @@ jobs:
     strategy:
       matrix:
         image:
-          - n8nio/n8n:1.63.4
-          - postgres:15.8-alpine3.20
+          # Core N8N stack - aligned with docker-compose.yml
+          - n8nio/n8n:1.116.2
+          - postgres:16-alpine
           - redis:7.4.1-alpine3.20
+          # Reverse proxy options - aligned with respective compose files
           - nginx:1.27.2-alpine3.20
           - traefik:v3.1.6
+          # Monitoring stack - aligned with docker-compose.monitoring.yml
           - prom/prometheus:v2.54.1
           - grafana/grafana:11.2.2
+          - prom/node-exporter:v1.8.2
+          - gcr.io/cadvisor/cadvisor:v0.50.0
+          - prom/alertmanager:v0.27.0
+          - grafana/loki:3.2.0
+          - grafana/promtail:3.2.0
+          - louislam/uptime-kuma:1.23.15
     steps:
       - name: Set safe filename
         id: safe-name
@@ -72,7 +81,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-${{ steps.safe-name.outputs.filename }}.sarif'
           severity: 'CRITICAL,HIGH'
-          exit-code: '0'  # Don't fail the build on vulnerabilities
+          exit-code: '1'  # Fail the build on HIGH/CRITICAL vulnerabilities
           vuln-type: 'os,library'
           scanners: 'vuln'
 

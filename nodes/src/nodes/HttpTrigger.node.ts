@@ -7,6 +7,8 @@ import {
 	IWebhookResponseData,
 } from 'n8n-workflow';
 
+import type { Request, Response } from 'express';
+
 export class HttpTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'HTTP Trigger',
@@ -167,28 +169,28 @@ export class HttpTrigger implements INodeType {
 		const responseCode = this.getNodeParameter('responseCode', 200) as number;
 		const responseData = this.getNodeParameter('responseData', 'success') as string;
 
-		const req = this.getRequestObject();
-		const resp = this.getResponseObject();
+		const req = this.getRequestObject() as Request;
+		const resp = this.getResponseObject() as Response;
 		const headers = this.getHeaderData();
 		const queryData = this.getQueryData();
 
-		let body: any = {};
+		let body: IDataObject | string | Buffer = {};
 
 		if (req.body) {
 			if (options.rawBody === true) {
-				body = req.body;
+				body = req.body as IDataObject | string | Buffer;
 			} else {
 				body = this.getBodyData();
 			}
 		}
 
 		// Prepare the data to return
-		const returnData = {
+		const returnData: IDataObject = {
 			headers,
 			params: queryData,
 			body,
-			method: req.method,
-			url: req.url,
+			method: req.method as string,
+			url: req.url as string,
 			timestamp: new Date().toISOString(),
 		};
 

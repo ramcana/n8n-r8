@@ -1,4 +1,4 @@
-version: '3.8'
+# Docker Compose version is now optional and deprecated
 
 services:
   traefik:
@@ -8,7 +8,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Traefik dashboard
+      - "8080:8080" # Traefik dashboard
     volumes:
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
@@ -21,7 +21,15 @@ services:
       - TRAEFIK_API_DASHBOARD=${TRAEFIK_API_DASHBOARD:-true}
       - TRAEFIK_API_INSECURE=${TRAEFIK_API_INSECURE:-true}
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/ping",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -31,11 +39,11 @@ services:
       - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DASHBOARD_HOST}`)"
       - "traefik.http.routers.traefik.service=api@internal"
       - "traefik.http.routers.traefik.middlewares=auth"
-      - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$K8QJZz.ZJZ5Z5Z5Z5Z5Z5O"  # admin:admin (change this!)
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$K8QJZz.ZJZ5Z5Z5Z5Z5Z5O" # admin:admin (change this!)
 
   # Override n8n service to enable Traefik labels and remove port exposure
   n8n:
-    ports: []  # Remove port exposure, Traefik will handle routing
+    ports: [] # Remove port exposure, Traefik will handle routing
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.n8n.rule=Host(`${N8N_HOST}`)"

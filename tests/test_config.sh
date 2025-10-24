@@ -2,6 +2,9 @@
 
 # N8N-R8 Test Configuration
 # Central configuration for all test settings
+
+# Project root directory - set relative to this config file
+PROJECT_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
 # Test execution settings
 TEST_TIMEOUT=${TEST_TIMEOUT:-300}          # Default test timeout in seconds
 TEST_PARALLEL=${TEST_PARALLEL:-false}      # Run tests in parallel
@@ -105,6 +108,7 @@ get_test_config() {
     esac
 }
 # Export configuration for use in test scripts
+export PROJECT_ROOT
 export TEST_TIMEOUT TEST_PARALLEL TEST_CLEANUP TEST_VERBOSE TEST_DEBUG
 export TEST_DOCKER_NETWORK TEST_DOCKER_PREFIX TEST_DOCKER_TIMEOUT
 export TEST_DATA_DIR TEST_CONFIG_DIR TEST_BACKUP_DIR

@@ -3,10 +3,10 @@ name: Shell Script Validation
 on:
   push:
     paths:
-      - '**.sh'
+      - "**.sh"
   pull_request:
     paths:
-      - '**.sh'
+      - "**.sh"
   workflow_dispatch:
 
 jobs:
@@ -27,4 +27,10 @@ jobs:
 
       - name: Run shellcheck
         run: |
-          find . -type f -name "*.sh" -exec shellcheck {} \;
+          find . -type f -name "*.sh" \
+            -not -path "./node_modules/*" \
+            -not -path "./nodes/node_modules/*" \
+            -not -path "./data/*" \
+            -not -path "./.git/*" \
+            -not -path "./logs/*" \
+            -exec shellcheck {} \;

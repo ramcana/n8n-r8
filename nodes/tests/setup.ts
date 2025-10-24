@@ -22,7 +22,7 @@ afterEach(() => {
 export const mockExecuteFunctions = {
 	getInputData: jest.fn(),
 	getNodeParameter: jest.fn(),
-	getCredentials: jest.fn(),
+	getCredentials: jest.fn() as jest.MockedFunction<any>,
 	continueOnFail: jest.fn().mockReturnValue(false),
 	getNode: jest.fn().mockReturnValue({
 		name: 'Test Node',
@@ -33,11 +33,12 @@ export const mockExecuteFunctions = {
 		request: jest.fn(),
 		requestWithAuthentication: jest.fn(),
 		returnJsonArray: jest.fn((data) => (Array.isArray(data) ? data : [data])),
-		constructExecutionMetaData: jest.fn((data: any[], metadata?: any) => 
+		constructExecutionMetaData: jest.fn((data: any[], metadata?: any) =>
 			(Array.isArray(data) ? data : [data]).map((item: any) => ({
 				json: item,
-				pairedItem: metadata?.itemData?.item !== undefined ? { item: metadata.itemData.item } : undefined,
-			}))
+				pairedItem:
+					metadata?.itemData?.item !== undefined ? { item: metadata.itemData.item } : undefined,
+			})),
 		),
 	},
 	logger: {
@@ -74,9 +75,11 @@ export const resetAllMocks = () => {
 // Helper function to setup common mocks
 export const setupCommonMocks = (inputData = [{ json: { test: 'data' } }]) => {
 	mockExecuteFunctions.getInputData.mockReturnValue(inputData);
-	mockExecuteFunctions.getCredentials.mockResolvedValue(mockCredentials as any);
+	(mockExecuteFunctions.getCredentials as jest.MockedFunction<any>).mockResolvedValue(
+		mockCredentials,
+	);
 	mockExecuteFunctions.continueOnFail.mockReturnValue(false);
-	
+
 	return mockExecuteFunctions;
 };
 

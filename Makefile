@@ -11,6 +11,8 @@
 .PHONY: performance-test performance-baseline performance-monitor
 .PHONY: autoupdate-enable autoupdate-disable autoupdate-status autoupdate-check autoupdate-update autoupdate-schedule autoupdate-watchtower
 .PHONY: quick-start quick-nginx quick-traefik quick-monitor quick-secure quick-test quick-full
+.PHONY: cleanup-n8n check-port n8n-status fix-n8n
+.PHONY: check-versions update-versions version-status
 
 # Default target
 .DEFAULT_GOAL := help
@@ -168,6 +170,24 @@ logs-nginx: ## Show Nginx logs (if running)
 
 logs-traefik: ## Show Traefik logs (if running)
 	docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_TRAEFIK) logs -f traefik 2>/dev/null || echo "$(YELLOW)Traefik not running$(NC)"
+
+##@ Container Management
+
+cleanup-n8n: ## Clean up rogue n8n containers and fix port conflicts
+	@echo "$(GREEN)Cleaning up n8n containers and resolving port conflicts...$(NC)"
+	@./scripts/cleanup-n8n.sh
+
+fix-n8n: ## Fix n8n container issues and ensure it's running properly
+	@echo "$(GREEN)Fixing n8n container issues...$(NC)"
+	@./scripts/cleanup-n8n.sh
+
+check-port: ## Check if n8n port is available
+	@echo "$(GREEN)Checking n8n port availability...$(NC)"
+	@./scripts/cleanup-n8n.sh check-port
+
+n8n-status: ## Show detailed n8n container status
+	@echo "$(GREEN)N8N Container Status:$(NC)"
+	@./scripts/cleanup-n8n.sh status
 
 status: ## Show status of all services
 	@echo "$(BLUE)Service Status:$(NC)"
@@ -827,6 +847,23 @@ start-secure: ## Start with enhanced security
 	docker compose -f $(COMPOSE_FILE) -f security/docker-compose.security.yml up -d
 	@$(MAKE) --no-print-directory _wait-for-services
 	@$(MAKE) --no-print-directory _show-access-info
+
+##@ Version Management
+
+check-versions: ## Check for N8N version updates
+	@echo "$(GREEN)Checking for N8N version updates...$(NC)"
+	@./scripts/check-versions.sh
+
+update-versions: ## Update N8N to latest versions
+	@echo "$(GREEN)Updating N8N to latest versions...$(NC)"
+	@./scripts/update-n8n-versions.sh
+
+version-status: ## Show current N8N versions
+	@echo "$(BLUE)Current N8N Versions:$(NC)"
+	@echo "===================="
+	@echo "Docker image: $(shell grep 'image: n8nio/n8n:' docker-compose.yml | sed 's/.*n8nio\/n8n://' | tr -d ' ')"
+	@echo "npm n8n-core: $(shell grep '"n8n-core":' nodes/package.json | sed 's/.*"n8n-core": *"[^0-9]*\([0-9.]*\)".*/\1/' 2>/dev/null || echo 'not found')"
+	@echo "npm n8n-workflow: $(shell grep '"n8n-workflow":' nodes/package.json | sed 's/.*"n8n-workflow": *"[^0-9]*\([0-9.]*\)".*/\1/' 2>/dev/null || echo 'not found')"
 
 ##@ Documentation
 

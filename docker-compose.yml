@@ -2,12 +2,12 @@
 
 services:
   n8n:
-    image: n8nio/n8n:1.111.1
+    image: n8nio/n8n:1.116.2
     container_name: n8n
     restart: unless-stopped
     # Conditional port exposure - only expose when not using reverse proxy
     ports:
-      - "127.0.0.1:${N8N_PORT:-9678}:5678"
+      - "127.0.0.1:${N8N_PORT:-5678}:5678"
     # Note: profiles removed to allow nginx/traefik overrides to work properly
     # Port exposure will be overridden by proxy configurations
     # Uncomment for M1 Macs if needed
@@ -46,6 +46,7 @@ services:
       - ./data/n8n:/home/node/.n8n
       - ./nodes/dist:/home/node/.n8n/custom
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/d/n8n/ai-ewg:/data
     depends_on:
       postgres:
         condition: service_healthy

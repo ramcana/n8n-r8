@@ -221,12 +221,12 @@ jobs:
         if: matrix.deployment == 'basic'
         run: |
           echo "Starting basic deployment..."
-          docker-compose up -d
+          docker compose up -d
 
           echo "Waiting for services to become healthy..."
           for i in {1..20}; do
             echo "Health check attempt $i..."
-            docker-compose ps
+            docker compose ps
             n8n_health=$(docker inspect --format='{{.State.Health.Status}}' n8n)
             postgres_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-postgres)
             redis_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-redis)
@@ -239,7 +239,7 @@ jobs:
             fi
             if [ $i -eq 20 ]; then
               echo "Services did not become healthy in time."
-              docker-compose logs
+              docker compose logs
               exit 1
             fi
             sleep 15
@@ -249,7 +249,7 @@ jobs:
           ./scripts/health-check.sh
 
           echo "Tearing down the environment..."
-          docker-compose down -v
+          docker compose down -v
 
       - name: Test Nginx deployment
         if: matrix.deployment == 'nginx'
@@ -260,12 +260,12 @@ jobs:
           sed -i 's/N8N_HOST=n8n.localhost/N8N_HOST=localhost/g' .env
           sed -i 's|WEBHOOK_URL=http://n8n.localhost/|WEBHOOK_URL=http://localhost/|g' .env
 
-          docker-compose -f docker-compose.yml -f docker-compose.nginx.yml up -d
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml up -d
 
           echo "Waiting for services to become healthy..."
           for i in {1..20}; do
             echo "Health check attempt $i..."
-            docker-compose -f docker-compose.yml -f docker-compose.nginx.yml ps
+            docker compose -f docker-compose.yml -f docker-compose.nginx.yml ps
             n8n_health=$(docker inspect --format='{{.State.Health.Status}}' n8n)
             postgres_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-postgres)
             redis_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-redis)
@@ -280,7 +280,7 @@ jobs:
             fi
             if [ $i -eq 20 ]; then
               echo "Services did not become healthy in time."
-              docker-compose -f docker-compose.yml -f docker-compose.nginx.yml logs
+              docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs
               exit 1
             fi
             sleep 15
@@ -290,17 +290,17 @@ jobs:
           curl -f http://localhost/healthz || exit 1
 
           echo "Tearing down the environment..."
-          docker-compose -f docker-compose.yml -f docker-compose.nginx.yml down -v
+          docker compose -f docker-compose.yml -f docker-compose.nginx.yml down -v
 
       - name: Test Traefik deployment
         if: matrix.deployment == 'traefik'
         run: |
-          docker-compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+          docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
 
           echo "Waiting for services to become healthy..."
           for i in {1..20}; do
             echo "Health check attempt $i..."
-            docker-compose -f docker-compose.yml -f docker-compose.traefik.yml ps
+            docker compose -f docker-compose.yml -f docker-compose.traefik.yml ps
             n8n_health=$(docker inspect --format='{{.State.Health.Status}}' n8n)
             postgres_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-postgres)
             redis_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-redis)
@@ -315,7 +315,7 @@ jobs:
             fi
             if [ $i -eq 20 ]; then
               echo "Services did not become healthy in time."
-              docker-compose -f docker-compose.yml -f docker-compose.traefik.yml logs
+              docker compose -f docker-compose.yml -f docker-compose.traefik.yml logs
               exit 1
             fi
             sleep 15
@@ -325,7 +325,7 @@ jobs:
           curl -f http://localhost:8080/ping || exit 1
 
           echo "Tearing down the environment..."
-          docker-compose -f docker-compose.yml -f docker-compose.traefik.yml down -v
+          docker compose -f docker-compose.yml -f docker-compose.traefik.yml down -v
 
       - name: Test monitoring deployment
         if: matrix.deployment == 'monitoring'
@@ -333,17 +333,17 @@ jobs:
           mkdir -p monitoring/data/{prometheus,grafana,loki,alertmanager,uptime-kuma}
           chmod -R 777 monitoring/data/ || echo "Permission setup completed"
 
-          docker-compose -f docker-compose.monitoring.yml up -d
+          docker compose -f docker-compose.monitoring.yml up -d
 
           echo "Waiting for monitoring services to start..."
           sleep 90
 
-          docker-compose -f docker-compose.monitoring.yml ps
+          docker compose -f docker-compose.monitoring.yml ps
 
           curl -f http://localhost:9090/-/healthy || curl -f http://localhost:3100/ready || exit 1
 
           echo "Tearing down the environment..."
-          docker-compose -f docker-compose.monitoring.yml down -v
+          docker compose -f docker-compose.monitoring.yml down -v
 
       - name: Cleanup
         if: always()

@@ -174,7 +174,7 @@ jobs:
   test-deployment:
     name: Test Deployment
     runs-on: ubuntu-latest
-    needs: [lint-and-validate]
+    needs: [lint-and-validate, security-scan]
     strategy:
       matrix:
         deployment: [basic, nginx, traefik, monitoring]
@@ -221,38 +221,35 @@ jobs:
         if: matrix.deployment == 'basic'
         run: |
           echo "Starting basic deployment..."
-          docker compose up -d
+          docker-compose up -d
 
-          # Wait for services to start
-          echo "Waiting for services to start..."
-          sleep 45
-
-          # Check container status
-          echo "Container status:"
-          docker compose ps
-
-          # Show logs for debugging
-          echo "Service logs:"
-          docker compose logs --tail=20
-
-          # Test health endpoints with retry
-          echo "Testing n8n health endpoint..."
-          for i in {1..5}; do
-            if curl -f http://localhost:5678/healthz; then
-              echo "Health check passed!"
+          echo "Waiting for services to become healthy..."
+          for i in {1..20}; do
+            echo "Health check attempt $i..."
+            docker-compose ps
+            n8n_health=$(docker inspect --format='{{.State.Health.Status}}' n8n)
+            postgres_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-postgres)
+            redis_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-redis)
+            echo "n8n status: $n8n_health"
+            echo "postgres status: $postgres_health"
+            echo "redis status: $redis_health"
+            if [ "$n8n_health" = "healthy" ] && [ "$postgres_health" = "healthy" ] && [ "$redis_health" = "healthy" ]; then
+              echo "All services are healthy!"
               break
-            else
-              echo "Health check attempt $i failed, retrying in 10s..."
-              sleep 10
             fi
+            if [ $i -eq 20 ]; then
+              echo "Services did not become healthy in time."
+              docker-compose logs
+              exit 1
+            fi
+            sleep 15
           done
 
-          # Final health check
-          curl -f http://localhost:5678/healthz || exit 1
+          echo "Running health check script..."
+          ./scripts/health-check.sh
 
-          docker compose down -v
-          # Cleanup test environment
-          rm -f .env
+          echo "Tearing down the environment..."
+          docker-compose down -v
 
       - name: Test Nginx deployment
         if: matrix.deployment == 'nginx'
@@ -263,215 +260,95 @@ jobs:
           sed -i 's/N8N_HOST=n8n.localhost/N8N_HOST=localhost/g' .env
           sed -i 's|WEBHOOK_URL=http://n8n.localhost/|WEBHOOK_URL=http://localhost/|g' .env
 
-          echo "📋 Environment configuration for nginx:"
-          grep -E "(N8N_HOST|WEBHOOK_URL|POSTGRES_)" .env
+          docker-compose -f docker-compose.yml -f docker-compose.nginx.yml up -d
 
-          # Ensure all critical environment variables are set
-          echo "📋 Verifying all required environment variables:"
-          echo "Complete .env file contents:"
-          cat .env
-          echo "---"
-
-          # Check for empty or missing critical variables
-          missing_vars=""
-          for var in N8N_ENCRYPTION_KEY N8N_JWT_SECRET POSTGRES_USER POSTGRES_DB POSTGRES_PASSWORD REDIS_PASSWORD; do
-            if ! grep -q "^${var}=" .env || grep -q "^${var}=$" .env; then
-              missing_vars="$missing_vars $var"
-            fi
-          done
-
-          if [ -n "$missing_vars" ]; then
-            echo "❌ Missing or empty critical environment variables:$missing_vars"
-            exit 1
-          fi
-
-          echo "✅ All critical environment variables are set"
-
-          # Ensure custom nodes are built and available
-          echo "📋 Checking custom nodes build:"
-          if [ -d "nodes/dist" ]; then
-            ls -la nodes/dist/
-            echo "Custom nodes content:"
-            find nodes/dist -type f -name "*.js" | head -10
-          else
-            echo "❌ No custom nodes dist directory found - this might cause n8n startup issues"
-            # Create empty directory to prevent mount issues
-            mkdir -p nodes/dist
-          fi
-
-          # Create required data directories with proper permissions
-          echo "📋 Setting up data directories:"
-          mkdir -p data/n8n data/postgres data/redis
-          chmod -R 755 data/
-
-          # Verify Docker network exists
-          echo "📋 Ensuring Docker network exists:"
-          docker network create n8n-network || echo "Network already exists"
-          docker network ls | grep n8n-network
-
-          # Temporarily modify health check for more lenient CI testing
-          echo "📋 Applying CI-specific health check configuration..."
-          sed -i 's/start_period: 120s/start_period: 180s/' docker-compose.yml
-          sed -i 's/retries: 5/retries: 8/' docker-compose.yml
-          sed -i 's/interval: 30s/interval: 20s/' docker-compose.yml
-
-          # Start services
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml up -d
-
-          # Wait for initial startup and monitor n8n startup
-          echo "⏳ Waiting for services to start (monitoring n8n startup)..."
-          sleep 30
-
-          # Check n8n startup logs immediately
-          echo "📋 N8N startup logs (first 30 seconds):"
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=50
-
-          sleep 30
-
-          # Check container status early
-          echo "📊 Initial container status:"
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml ps
-
-          # Check if postgres is healthy first
-          echo "🔍 Checking PostgreSQL health..."
-          for i in {1..10}; do
-            if docker compose -f docker-compose.yml -f docker-compose.nginx.yml exec -T postgres pg_isready -U n8n_test -d n8n_test; then
-              echo "✅ PostgreSQL is ready!"
-              
-              # Test database connection with the exact credentials n8n will use
-              echo "🔍 Testing database connection with n8n credentials..."
-              docker compose -f docker-compose.yml -f docker-compose.nginx.yml exec -T postgres psql -U n8n_test -d n8n_test -c "SELECT version();" || echo "❌ Database connection test failed"
+          echo "Waiting for services to become healthy..."
+          for i in {1..20}; do
+            echo "Health check attempt $i..."
+            docker-compose -f docker-compose.yml -f docker-compose.nginx.yml ps
+            n8n_health=$(docker inspect --format='{{.State.Health.Status}}' n8n)
+            postgres_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-postgres)
+            redis_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-redis)
+            nginx_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-nginx)
+            echo "n8n status: $n8n_health"
+            echo "postgres status: $postgres_health"
+            echo "redis status: $redis_health"
+            echo "nginx status: $nginx_health"
+            if [ "$n8n_health" = "healthy" ] && [ "$postgres_health" = "healthy" ] && [ "$redis_health" = "healthy" ] && [ "$nginx_health" = "healthy" ]; then
+              echo "All services are healthy!"
               break
-            else
-              echo "⏳ PostgreSQL not ready yet (attempt $i/10), waiting 5s..."
-              sleep 5
             fi
+            if [ $i -eq 20 ]; then
+              echo "Services did not become healthy in time."
+              docker-compose -f docker-compose.yml -f docker-compose.nginx.yml logs
+              exit 1
+            fi
+            sleep 15
           done
 
-          # Show early n8n logs to catch startup issues
-          echo "📋 Early N8N container logs:"
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=30
+          echo "Testing nginx proxy to n8n healthz endpoint..."
+          curl -f http://localhost/healthz || exit 1
 
-          # Wait longer for n8n to be fully ready and check its health status
-          echo "⏳ Waiting for n8n to be fully ready..."
-          for i in {1..12}; do
-            health_status=$(docker inspect n8n --format='{{.State.Health.Status}}' 2>/dev/null || echo "no-health")
-            echo "N8N health status (attempt $i/12): $health_status"
-            
-            if [ "$health_status" = "healthy" ]; then
-              echo "✅ N8N is healthy!"
-              break
-            elif [ "$health_status" = "unhealthy" ]; then
-              echo "❌ N8N is unhealthy, showing logs:"
-              docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=20
-            fi
-            
-            sleep 10
-          done
-
-          # Final container status check
-          echo "📊 Final container status:"
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml ps
-
-          # Check n8n health directly (if possible)
-          echo "🔍 Checking n8n container health status..."
-          health_status=$(docker inspect n8n --format='{{.State.Health.Status}}' 2>/dev/null || echo "no-health")
-          echo "N8N health status: $health_status"
-
-          # If unhealthy, check if n8n is actually listening on port 5678
-          if [ "$health_status" = "unhealthy" ]; then
-            echo "🔍 Checking if n8n is listening on port 5678..."
-            docker compose -f docker-compose.yml -f docker-compose.nginx.yml exec -T n8n netstat -tlnp | grep 5678 || echo "❌ N8N not listening on port 5678"
-            
-            echo "🔍 Checking n8n process status..."
-            docker compose -f docker-compose.yml -f docker-compose.nginx.yml exec -T n8n ps aux || echo "❌ Cannot check process status"
-          fi
-
-          # Show comprehensive logs before testing
-          echo "📋 Complete N8N container logs:"
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=50
-
-          echo "📋 PostgreSQL container logs:"
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs postgres --tail=20
-
-          echo "📋 Nginx container logs:"
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs nginx --tail=20
-
-          # Test Nginx health endpoint
-          echo "🧪 Testing nginx health endpoint..."
-          curl -f http://localhost/health || exit 1
-
-          # Test that nginx can proxy to n8n
-          echo "🧪 Testing nginx proxy to n8n healthz endpoint..."
-          for i in {1..5}; do
-            if curl -f http://localhost/healthz; then
-              echo "✅ N8N health check passed!"
-              break
-            else
-              echo "❌ N8N health check attempt $i failed, retrying in 15s..."
-              sleep 15
-            fi
-          done
-
-          # Final attempt - if this fails, we'll see the error
-          curl -f http://localhost/healthz || {
-            echo "❌ Final n8n health check failed"
-            echo "📋 Final N8N logs:"
-            docker compose -f docker-compose.yml -f docker-compose.nginx.yml logs n8n --tail=100
-            exit 1
-          }
-
-          echo "✅ Nginx deployment test completed successfully"
-          docker compose -f docker-compose.yml -f docker-compose.nginx.yml down -v
-          # Cleanup test environment
-          rm -f .env
+          echo "Tearing down the environment..."
+          docker-compose -f docker-compose.yml -f docker-compose.nginx.yml down -v
 
       - name: Test Traefik deployment
         if: matrix.deployment == 'traefik'
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
-          sleep 30
-          docker compose ps
-          # Test Traefik dashboard
+          docker-compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+
+          echo "Waiting for services to become healthy..."
+          for i in {1..20}; do
+            echo "Health check attempt $i..."
+            docker-compose -f docker-compose.yml -f docker-compose.traefik.yml ps
+            n8n_health=$(docker inspect --format='{{.State.Health.Status}}' n8n)
+            postgres_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-postgres)
+            redis_health=$(docker inspect --format='{{.State.Health.Status}}' n8n-redis)
+            traefik_health=$(docker inspect --format='{{.State.Health.Status}}' traefik)
+            echo "n8n status: $n8n_health"
+            echo "postgres status: $postgres_health"
+            echo "redis status: $redis_health"
+            echo "traefik status: $traefik_health"
+            if [ "$n8n_health" = "healthy" ] && [ "$postgres_health" = "healthy" ] && [ "$redis_health" = "healthy" ] && [ "$traefik_health" = "healthy" ]; then
+              echo "All services are healthy!"
+              break
+            fi
+            if [ $i -eq 20 ]; then
+              echo "Services did not become healthy in time."
+              docker-compose -f docker-compose.yml -f docker-compose.traefik.yml logs
+              exit 1
+            fi
+            sleep 15
+          done
+
+          echo "Testing Traefik dashboard..."
           curl -f http://localhost:8080/ping || exit 1
-          docker compose -f docker-compose.yml -f docker-compose.traefik.yml down -v
+
+          echo "Tearing down the environment..."
+          docker-compose -f docker-compose.yml -f docker-compose.traefik.yml down -v
 
       - name: Test monitoring deployment
         if: matrix.deployment == 'monitoring'
         run: |
-          # Setup monitoring directories with proper permissions (CI-friendly)
           mkdir -p monitoring/data/{prometheus,grafana,loki,alertmanager,uptime-kuma}
           chmod -R 777 monitoring/data/ || echo "Permission setup completed"
 
-          echo "Starting monitoring stack..."
-          docker compose -f docker-compose.monitoring.yml up -d
+          docker-compose -f docker-compose.monitoring.yml up -d
 
-          # Wait longer for monitoring stack to be ready
           echo "Waiting for monitoring services to start..."
           sleep 90
 
-          # Check container status
-          echo "Container status:"
-          docker compose -f docker-compose.monitoring.yml ps
+          docker-compose -f docker-compose.monitoring.yml ps
 
-          # Show logs for debugging
-          echo "Service logs:"
-          docker compose -f docker-compose.monitoring.yml logs --tail=10
-
-          # Test monitoring endpoints with retries
-          echo "Testing Prometheus..."
-          curl -f http://localhost:9090/-/healthy || echo "Prometheus not ready"
-
-          echo "Testing Grafana..."
-          curl -f http://localhost:3000/api/health || echo "Grafana not ready"
-
-          echo "Testing Loki..."
-          curl -f http://localhost:3100/ready || echo "Loki not ready"
-
-          # At least one service should be working
           curl -f http://localhost:9090/-/healthy || curl -f http://localhost:3100/ready || exit 1
 
-          docker compose -f docker-compose.monitoring.yml down -v
+          echo "Tearing down the environment..."
+          docker-compose -f docker-compose.monitoring.yml down -v
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f .env
 
   build-custom-nodes:
     name: Build Custom Nodes

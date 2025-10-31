@@ -69,7 +69,7 @@
   },
   "dependencies": {
     "express": "^4.18.4",
-    "n8n-core": "^1.114.1",
+    "n8n-core": "^1.117.0",
     "n8n-nodes-comfyui-image-to-video": "^1.0.1",
     "n8n-workflow": "^1.114.0"
   },

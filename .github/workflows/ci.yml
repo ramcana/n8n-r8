@@ -165,7 +165,7 @@ jobs:
         continue-on-error: true
         with:
           path: ./
-          extra_args: --only-verified --no-update
+          extra_args: --only-verified --no-update --exclude-paths nodes/node_modules
 
       - name: Skip TruffleHog if no new commits
         if: github.event.before == github.sha
@@ -176,6 +176,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint-and-validate, security-scan]
     strategy:
+      fail-fast: false
       matrix:
         deployment: [basic, nginx, traefik, monitoring]
     steps:
